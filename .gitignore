@@ -54,3 +54,7 @@ rsconnect/
 # Ignore Excel files
 *.xlsx
 *.xls
+
+# Ignore DS_Store
+.DS_Store
+
