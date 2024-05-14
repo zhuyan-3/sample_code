@@ -1,0 +1,41 @@
+---
+title: "Clean Demographic"
+author: "Yan Zhu"
+date: "`r lubridate::today()`"
+format: 
+  html:
+    timeout: 180
+    embed-resources: true
+    toc: true 
+    toc_depth: 4
+editor_options: 
+  chunk_output_type: inline
+---
+
+## Introduction
+In this file, I will  clean and preprocess Demographic data from Baseline data of ESM study. The goal is to prepare the data for analysis and visualization.
+
+**Note:** 
+
+Raw file from Qualtrics
+⁃ Seen but unanswered questions = -99
+⁃ Seen but unanswered multi-value fields = -88
+⁃ Fields that the participants did not see = NA
+
+## Set up
+```{r set up, echo=TRUE, results='hide'}
+library(tidyverse)
+library(dplyr)
+library(skimr)
+library(janitor)
+```
+
+```{r read data}
+demog <- read_csv("/Users/yan/Desktop/ESM/1_anonymization/anonymous_baseline.csv") %>% 
+  select(random_id, age, res, sch_yr, race, mult, race_txt, eth, dis1, dis_dev,
+         dis_lrn, dis_sen, dis_mob, dis_psy, dis_unl, dis_txt, dis_ill, dis_dev,
+         gend, trans, sx_ori, dem12, f_aid, p_grnt, job, f_need, fgen)
+# dis2, dis_inj, dis_combined, dis_mult, rel, smu
+```
+
+

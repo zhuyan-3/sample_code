@@ -1,0 +1,239 @@
+---
+title: "Data Anonymization"
+author: "Yan Zhu"
+date: "`r lubridate::today()`"
+format: 
+  html:
+    timeout: 180
+    embed-resources: true
+    toc: true 
+    toc_depth: 4
+editor_options: 
+  chunk_output_type: inline
+---
+## Matching IDs and Data Anonymization
+
+This code file is used for matching IDs and data anonymization to ensure data privacy. The code includes steps for processing data, matching IDs, and implementing data anonymization measures to ensure the security of sensitive information.
+
+**Note:** The output of the data might be hidden due to it displaying personal information.
+
+### Data Processing Steps
+
+- Setup package and read the data file
+- Execute data matching
+- Perform data anonymization
+- Generate the final result
+
+## Setup
+```{r setup, echo=TRUE, results='hide', message=FALSE, warning=FALSE}
+library(tidyverse)
+library(dplyr)
+library(skimr)
+library(janitor)
+library(readxl)
+```
+
+```{r read_data, echo=TRUE, results='hide', message=FALSE, warning=FALSE}
+baseline <- read_csv("/Users/yan/Desktop/ESM/0_raw data/esm_bline_feb29.csv") %>%
+  select( -new_random_id) %>% 
+  clean_names()
+
+daily <- read_csv("/Users/yan/Desktop/ESM/0_raw data/esm_diary_raw_data.csv") %>%
+  clean_names()
+daily <- daily[-c(1, 2), ]
+
+sona_id <- read_excel("/Users/yan/Desktop/ESM/0_raw data/PID_SonaID_match.xlsx") %>%
+  clean_names()
+```
+
+## Execute data matching
+```{r check baseline id}
+# check id column's name in baseline
+grep("id", names(baseline ), value = TRUE)
+```
+
+```{r}
+# rename the variable name
+baseline <- baseline %>% 
+  rename(sona_id = new_sona_id)
+
+# change variable in character type
+baseline$sona_id <- as.character(baseline$sona_id)
+```
+
+
+```{r}
+# check is there any missing data in ID column
+any(is.na(baseline$sona_id))
+```
+
+```{r check daily id}}
+# check id column's name in daily
+grep("id", names(daily), value = TRUE)
+```
+
+```{r}
+# check is there any missing data in ID column
+any(is.na(daily$pid))
+```
+
+
+There is only "PID" in the daily survey, so "PID" and "SONA ID" need to be matched.
+```{r}
+daily <- merge(daily, sona_id, by = "pid", all.x = TRUE)
+
+# change variable in character type
+daily$sona_id <- as.character(daily$sona_id)
+```
+
+
+## Data Anonymization
+```{r}
+cat("There are", length(unique(baseline$sona_id)), "participants in the baseline survey with", nrow(baseline), "rows, \nwhich means some participants completed the baseline survey more than once.")
+```
+
+
+
+```{r}
+cat("We have", length(unique(daily$sona_id)), "participants who answered", nrow(daily), "daily surveys")
+```
+
+```{r}
+# Save all the unique SONA ID in a new df
+unique_sona_id <- baseline %>%
+  distinct(sona_id)
+
+# Generate a unique random number ID for each different sona_id
+set.seed(56565656)  # Set a seed for reproducibility
+unique_sona_id$random_id = sample(100000:999999, length(unique(baseline$sona_id)))
+
+
+# Check if there are duplicate values in the random_id
+any(duplicated(unique_sona_id$random_id))
+```
+
+```{r}
+baseline <- merge(baseline, unique_sona_id, by = "sona_id", all.x = TRUE)
+
+daily <- merge(daily, unique_sona_id, by = "sona_id", all.x = TRUE)
+```
+
+```{r, echo=TRUE, results='hide'}
+check_baseline <- baseline[duplicated(baseline$random_id), ]
+ 
+check_baseline %>% select(random_id, sona_id)
+```
+
+```{r, echo=TRUE, results='hide'}
+check_daily <- daily[duplicated(daily$random_id), ]
+ 
+check_daily %>% select(random_id, sona_id)
+```
+
+
+**Note:** Based on the check in the previous step, it was found that daily$random_id has missing data, which indicates that some people did not fill in the baseline record.
+
+```{r}
+sum(is.na(daily$random_id))
+```
+
+```{r, echo=TRUE, results='hide'}
+daily_miss <- daily[is.na(daily$random_id),]
+
+unique(daily_miss$sona_id)
+```
+
+```{r}
+is_included <- unique(daily_miss$sona_id) %in% baseline$sona_id
+table(is_included)
+```
+
+*There 26 participants did not have any records in Baseline survey.*
+
+Remove all the survey which answered by those 26 participant
+```{r}
+daily <- daily[!is.na(daily$random_id),]
+nrow(daily)
+```
+
+
+And now, remove the SONA ID and PID in original data
+```{r}
+baseline <- baseline %>%
+  select(-sona_id)
+
+daily <- daily %>%
+  select(-pid, -sona_id)
+```
+
+```{r}
+grep("id", names(baseline), value = TRUE)
+```
+
+```{r}
+grep("id", names(daily), value = TRUE)
+```
+
+## Dupilicated Rows
+```{r}
+dupli_baseline <- baseline[duplicated(baseline$random_id), ]
+dupli_baseline
+```
+
+```{r}
+dupli_baseline$na_count <- rowSums(is.na(dupli_baseline))
+dupli_baseline %>% select(random_id, na_count)
+```
+
+```{r}
+baseline$na_count <- rowSums(is.na(baseline))
+baseline <- baseline %>%
+  group_by(random_id) %>%
+  filter(na_count == max(na_count)) %>%
+  select(-na_count)
+```
+
+
+Cause I will using the data which generated in this file I would like to do a little cleaning in Baseline data. 
+
+Removing some unnecessary columns.
+```{r}
+single_valued_columns <- sapply(baseline, function(col) length(unique(col)) == 1)
+cat("Variables with only one unique value:\n", names(baseline[single_valued_columns]))
+```
+
+```{r}
+baseline %>% select(sc_18, sc_au, addcode) %>% head()
+```
+
+Deleting list below:
+
+- sc_18: 1 = Yes (Are you at least 18 years old?)
+- sc_au: 1 = Yes (Have you consumed any alcohol in the last 12 months?)
+- addcode: All missing data, not helpful.
+
+sc_18 and sc_au are 2 mandatory questions have to answer, and the answer have to be 1 to continue the survey.
+```{r}
+baseline <- baseline %>% select(-sc_18, -sc_au, -addcode)
+```
+
+
+## Update
+
+1. SONA ID and PID have been excluded from data files, and random_id will be utilized in place of these previous IDs.
+
+2. There were 594 rows(surveys) deleted from this file because there were 26 participants who answered those 594 surveys did not completed the baseline survey.
+
+3. Deleted 3 columns.
+
+4. Removed duplicated columns in baseline survey.
+
+## Save 
+```{r}
+write.csv(baseline, file = "/Users/yan/Desktop/ESM/1_anonymization/anonymous_baseline.csv", row.names = FALSE)
+
+write.csv(daily, file = "/Users/yan/Desktop/ESM/1_anonymization/anonymous_daily.csv", row.names = FALSE)
+```
+
+
+
