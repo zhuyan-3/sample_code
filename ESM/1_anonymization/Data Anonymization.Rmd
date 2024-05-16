@@ -22,6 +22,7 @@ This code file is used for matching IDs and data anonymization to ensure data pr
 - Setup package and read the data file
 - Execute data matching
 - Perform data anonymization
+- Delete unnecessary data
 - Generate the final result
 
 ## Setup
@@ -34,15 +35,15 @@ library(readxl)
 ```
 
 ```{r read_data, echo=TRUE, results='hide', message=FALSE, warning=FALSE}
-baseline <- read_csv("/Users/yan/Desktop/ESM/0_raw data/esm_bline_feb29.csv") %>%
+baseline <- read_csv("/Users/yan/Desktop/sample_code/ESM/0_raw data/esm_bline_feb29.csv") %>%
   select( -new_random_id) %>% 
   clean_names()
 
-daily <- read_csv("/Users/yan/Desktop/ESM/0_raw data/esm_diary_raw_data.csv") %>%
+daily <- read_csv("/Users/yan/Desktop/sample_code/ESM/0_raw data/esm_diary_raw_data.csv") %>%
   clean_names()
 daily <- daily[-c(1, 2), ]
 
-sona_id <- read_excel("/Users/yan/Desktop/ESM/0_raw data/PID_SonaID_match.xlsx") %>%
+sona_id <- read_excel("/Users/yan/Desktop/sample_code/ESM/0_raw data/PID_SonaID_match.xlsx") %>%
   clean_names()
 ```
 
@@ -217,6 +218,12 @@ sc_18 and sc_au are 2 mandatory questions have to answer, and the answer have to
 baseline <- baseline %>% select(-sc_18, -sc_au, -addcode)
 ```
 
+## Delete unnecessary rows in baseline
+Delete baseline data for individuals who did not participate in daily questionnaire recordings.
+```{r}
+baseline <- baseline[baseline$random_id %in% daily$random_id, ]
+nrow(baseline)
+```
 
 ## Update
 
@@ -228,11 +235,13 @@ baseline <- baseline %>% select(-sc_18, -sc_au, -addcode)
 
 4. Removed duplicated columns in baseline survey.
 
+5. Matched the ID in Baseline and Daily survey data, and deleted some rows in Baseline data for individuals who did not participate in daily survey recordings.
+
 ## Save 
 ```{r}
-write.csv(baseline, file = "/Users/yan/Desktop/ESM/1_anonymization/anonymous_baseline.csv", row.names = FALSE)
+write.csv(baseline, file = "/Users/yan/Desktop/sample_code/ESM/1_anonymization/anonymous_baseline.csv", row.names = FALSE)
 
-write.csv(daily, file = "/Users/yan/Desktop/ESM/1_anonymization/anonymous_daily.csv", row.names = FALSE)
+write.csv(daily, file = "/Users/yan/Desktop/sample_code/ESM/1_anonymization/anonymous_daily.csv", row.names = FALSE)
 ```
 
 

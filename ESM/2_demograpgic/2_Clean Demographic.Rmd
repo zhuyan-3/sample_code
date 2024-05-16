@@ -15,12 +15,7 @@ editor_options:
 ## Introduction
 In this file, I will  clean and preprocess Demographic data from Baseline data of ESM study. The goal is to prepare the data for analysis and visualization.
 
-**Note:** 
-
-Raw file from Qualtrics
-⁃ Seen but unanswered questions = -99
-⁃ Seen but unanswered multi-value fields = -88
-⁃ Fields that the participants did not see = NA
+**Note:** The data file is from the CSV file which generated from Data Anonymization.Rmd
 
 ## Set up
 ```{r set up, echo=TRUE, results='hide'}
@@ -28,14 +23,104 @@ library(tidyverse)
 library(dplyr)
 library(skimr)
 library(janitor)
+library(skimr)
 ```
 
 ```{r read data}
-demog <- read_csv("/Users/yan/Desktop/ESM/1_anonymization/anonymous_baseline.csv") %>% 
+demog <- read_csv("/Users/yan/Desktop/sample_code/ESM/1_anonymization/anonymous_baseline.csv") %>% 
   select(random_id, age, res, sch_yr, race, mult, race_txt, eth, dis1, dis_dev,
-         dis_lrn, dis_sen, dis_mob, dis_psy, dis_unl, dis_txt, dis_ill, dis_dev,
-         gend, trans, sx_ori, dem12, f_aid, p_grnt, job, f_need, fgen)
-# dis2, dis_inj, dis_combined, dis_mult, rel, smu
+         dis_lrn, dis_sen, dis_mob, dis_psy, dis_unl, dis_txt, dis_ill,dis_dev,
+         gend, trans, sx_ori,, dem12, f_aid, p_grnt, job, f_need, fgen) %>% glimpse()
+
+# dis2, dis_inj, dis_combined, dis_mult, rel, smu 
+# Those varibales are in the baseline codebook,but not in the data file.
 ```
+
+Change the column type.
+```{r}
+demog <- demog %>%
+  mutate(across(-c(age, sch_yr), as.character))
+```
+
+```{r}
+skim(demog)
+```
+
+
+## Variable Checking and Editing
+
+### Age
+Variable code as "age"
+Survey Question: "How old are you?"
+```{r}
+ggplot(demog, aes(x = age)) +
+  geom_bar(fill = "skyblue", color = "black") +
+  geom_text(stat = "count", aes(label = after_stat(count)), vjust = -0.5) +
+  labs(x = "Age",
+       y = "Frequency",
+       title = "Histogram of Age",
+       subtitle = paste("Sample Size:", nrow(demog))) +
+  theme(plot.subtitle = element_text(size = 10)) +
+  theme_bw()
+```
+
+### Residence
+Variable code as "res"
+Where do you currently live?
+```{r}
+table(demog$res)
+```
+
+**Note:** 1 = On campus in a dorm , 2 = On campus in an apartment, 3 = Other on campus arrangement, 4 = Off campus apartment, 5 = Off campus house, 6 = Off campus with parents, 7 = On campus fraternity/soroity house, 8 = Off campus fraternity/sorority house,  9 = Other
+
+The numbers in the res column are replaced by corresponding labels, making the data more readable.
+```{r}
+demog$res <- ifelse(demog$res == 1, "On campus in a dorm", demog$res)
+demog$res <- ifelse(demog$res == 2, "On campus in an apartment", demog$res)
+demog$res <- ifelse(demog$res == 4, "Off campus apartment", demog$res)
+demog$res <- ifelse(demog$res == 5, "Off campus with parents", demog$res)
+demog$res <- ifelse(demog$res == 6, "Off campus with parents", demog$res)
+demog$res <- ifelse(demog$res == 8, "Off campus fraternity/sorority house", demog$res)
+table(demog$res)
+```
+
+```{r}
+ggplot(demog, aes(x = reorder(factor(res), -table(res)[factor(res)]))) +
+  geom_bar(fill = "skyblue", color = "black") +
+  geom_text(stat = "count", aes(label = after_stat(count)), vjust = -0.5) +
+  labs(x = "Residence Type",
+       y = "Frequency",
+       title = "Frequency of Residence Types") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+
+### School Tear
+Variable code as "sch_yr"
+What is your year in school?
+```{r}
+hist(demog$sch_yr)
+```
+
+### Race
+Variable code as "race"
+Recognizing that race is complex, which of the following classifications of race best describe how you identify?
+```{r}
+
+```
+
+### multiracial
+Variable code as "mult"
+Open text-entry responses from individuals identifying as multiracial
+```{r}
+
+```
+
+```{r}
+
+demog[demog$race=="Text-entry",]
+```
+
 
 

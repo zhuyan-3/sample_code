@@ -1,0 +1,863 @@
+---
+title: "Make daily survey" 
+author: "Yan Zhu"
+date: "`r lubridate::today()`"
+format: 
+  html:
+    timeout: 180
+    embed-resources: true
+    toc: true 
+    toc_depth: 4
+editor_options: 
+  chunk_output_type: inline
+---   
+
+## Notes
+
+This script builds a final daily survey df from the combined raw survey.  It should only be run after updating `combined_daily_survey.csv` with `2_make_raw_surveys.qmd`
+
+*user_answer_guid is the table identifier that shows what answer the user selected for a specific survey.*
+
+## Set up
+```{r Set up, echo=FALSE}
+options(conflicts.policy = "depends.ok")
+library(tidyverse) 
+devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/fun_eda.R?raw=true")
+devtools::source_url("https://github.com/jjcurtin/lab_support/blob/main/format_path.R?raw=true")
+
+theme_set(theme_classic())
+options(dplyr.print_max=Inf)
+
+path_processed <- format_path("studydata/risk2/data_processed/shared")
+```
+
+## Make initial daily df 
+Read raw daily survey from data_tables folder.
+
+- Remove lapse and lapse_date rows
+```{r reading data}
+raw <- read_csv(here::here(path_processed, "data_tables", "combined_daily.csv")) %>%  
+  filter(!str_detect(variable_name, "lapse")) %>%    
+  glimpse(show_col_types = FALSE)
+```
+
+```{r change variable type}
+# save the raw data into a new df, and modified the data in this new one.
+daily <- raw
+# change "subid" from number type to character type
+daily$subid <- as.character(daily$subid)
+
+# have a quick look on data
+suppressWarnings({
+  skim_all(daily)
+})
+```
+
+### Rename column and completed NA rows
+Noticed "other_data" should be renamed for better understanding.
+```{r rename other_data}
+# Second deletion
+daily <- daily %>% 
+  rename(utc_offset = other_data)
+
+colnames(daily)
+```
+
+Quick check why daily$user_answer_guid has NA Value
+```{r}
+sum(is.na(daily$user_answer_guid))
+```
+
+```{r}
+# Select rows from the daily data frame where the value of the daily$user_answer_guid column is an empty string.
+na_user_answer_guid <- daily[daily$user_answer_guid == "", ] %>% glimpse()
+```
+
+Remove rows from the rows from daily data frame where the value of the daily$user_answer_guid column is an empty string.
+```{r Remove rows}
+daily <- subset(daily, daily$user_answer_guid != "")
+cat("There are", nrow(na_user_answer_guid), "rows are removed.")
+```
+
+**Next step:** Check unnecessary variables before deleting
+
+### Deletion 1
+Here delete unnecessary columns which are have one unique variables.
+```{r Find columns with only one unique value}
+# Checks each column in the 'raw' data frame to determine if it contains only a single unique value
+single_valued_columns <- sapply(raw, function(col) length(unique(col)) == 1)
+cat("Variables with only one unique value:\n", names(raw[single_valued_columns]))
+```
+
+```{r First deletion}
+# First deletion
+daily <- daily %>% 
+  select(-survey_slug, -schedule_date, -display_conditions, -max_date, -min_date, -loop_node, -allow_future_dates, -max_number_selected_dates, -lapse_start_date, -lapse_start_time, -num_hours_to_show, -picker_format, -multiple, -min_value, -max_value, -subquestion_guid, -answer_child_node_guid) %>% 
+  glimpse(show_col_types = FALSE)
+```
+
+### Deletion 2
+After deleting some columns with **only one unique item**, I continued checking if there are any columns containing items with the same meaning but in different formats across different columns.
+```{r column with one item}
+# Find columns with the same number of unique values and record the number of unique values
+unique_counts <- sapply(daily, function(x) length(unique(x)))
+unique_count_list <- split(names(unique_counts), unique_counts)
+
+# Output columns with the same number of unique values and their number of unique values
+for (key in names(unique_count_list)) {
+  cat("Unique value count:", key, "\n")
+  cat("Columns:", paste(unique_count_list[[key]], collapse = ", "), "\n")
+}
+```
+
+In the above output, I will focus on observing variables with the same number of Unique value count and delete the redundant columns.
+
+
+#### Unique value count: 2 
+```{r check variables 1}
+# Columns: status, question_type, type
+daily %>% select(status, question_type, type) %>% head(10)
+```
+
+Here, delete one column named 'type'. The rationale is that another column named 'question_type' contains a more comprehensive record of the question types.
+```{r delete type}
+daily <- daily %>%
+  select(-type)
+```
+
+
+#### Unique value count: 3
+```{r check variable 2}
+# Columns: node_guid, node_title, node_description, child_node_guid, node_order 
+daily %>% select(node_guid, node_title, node_description, child_node_guid, node_order) %>% head(10)
+```
+
+Here, I delete 4 columns. In columns where the count of unique values is equal to 3, they represent the same item. I will keep the node_description column, as it provides the most information.
+```{r delete variable 3}
+daily <- daily %>%
+  select(-node_guid, -node_title, -child_node_guid, -node_order)
+```
+
+
+#### Unique value count: 15 
+```{r check variable 3}
+# Columns: question_guid, question_content, question_other_data, variable_name 
+daily %>% select(question_guid, question_content, question_other_data, variable_name) %>% head(10)
+```
+
+All of them represent the same item. Here, I delete three columns, keeping only 'variable_name,' which is clear and concise!
+```{r delete variable 4}
+daily <- daily %>%
+  select(-question_guid, -question_content, -question_other_data)
+```
+
+
+#### Unique value count: 69027 
+```{r check variable 4}
+# Columns: user_survey_guid, start_date 
+daily %>% select(user_survey_guid, start_date) %>% head(10)
+```
+
+Here, user_survey_guid was not deleted. Although the start date can be used to check the date and to distinguish between surveys, user_survey_guid's format is easier to use in some cases.
+```{r, include=FALSE}
+# daily <- daily %>%
+#   select(-user_survey_guid)
+# 
+# glimpse(daily)
+```
+
+
+Double check if there any unnecessary columns!!! (Using previous code)
+```{r check unnecessary columns}
+# Find columns with the same number of unique values and record the number of unique values
+unique_counts <- sapply(daily, function(x) length(unique(x)))
+unique_count_list <- split(names(unique_counts), unique_counts)
+
+# Output columns with the same number of unique values and their number of unique values
+for (key in names(unique_count_list)) {
+  cat("Unique value count:", key, "\n")
+  cat("Columns:", paste(unique_count_list[[key]], collapse = ", "), "\n")
+}
+```
+
+#### Deletion 3
+
+**order, answer_guid, user_answer_guid** are the last three columns that I am not clear about.
+```{r Checking NA}
+# Checking NA
+
+cat("NA count for order:", sum(is.na(daily$order)), "\nNA count for answer_guid:", sum(is.na(daily$answer_guid)), "\nNA count for user_answer_guid", sum(is.na(daily$user_answer_guid)))
+```
+
+**Note:** *order* and *answer_guid* have same number of NA
+
+Then let's check the missing value in *order* and *answer_guid* are in the same row.
+
+```{r order or answer_guid is NA}
+# get row number of order or answer_guid is NA
+not_na_unknown_rows <- daily[is.na(daily$answer_guid) | is.na(daily$order), ]
+
+paste("order or answer_guid are missing value, n =", nrow(not_na_unknown_rows))
+```
+
+```{r get row number of order and answer_guid}
+# get row number of order and answer_guid
+not_na_unknown_rows <- daily[is.na(daily$answer_guid) & is.na(daily$order), ]
+
+paste("order and answer_guid are missing value, n =", nrow(not_na_unknown_rows))
+```
+
+**Great!** Those row number are the same, which means these two variable are closely related with each other.
+
+And go head to check the *node_description* of those (order and answer_guid is NA)rows.
+```{r}
+table(not_na_unknown_rows$node_description)
+```
+
+**Now** we are sure about the variable *oder* is the numeric number for ranking of the answers in radio type of questions.
+
+Here delete *answer_guid*
+
+```{r delete answer guid}
+daily <- daily %>%
+  select(-answer_guid)
+```
+
+```{r}
+glimpse(daily)
+```
+
+### ID Check
+We need to select a usable ID. In theory, both subid and user_guid are usable, but since their quantities are different, we need to identify the issue.
+```{r}
+paste("We have", length(unique(daily$subid)), "unique subids and", 
+      length(unique(daily$user_guid)), "unique user_guids.")
+```
+
+Unclear about why **subid** and **user_guid** are having different unique value count.
+
+I assume that there are multiple user_guids associated with one subid, with two or more user_guids.
+```{r ID Check}
+# find out which subid had 2 user_guid
+id_df <- daily %>%
+  group_by(subid) %>%
+  summarize(num_user_guid = n_distinct(user_guid))
+
+id_df %>%
+  filter(num_user_guid == "2")
+```
+
+And indeed, there some subid with 2 user_guids.
+
+After talking with Susan, she explained: "We have had 4 people who for whatever reason got locked out of their account (and didn't have access to their setup email address any more) so we ended up having to create a new account for them. They ended up with two different user_guids but one subid. They are 1163, 1238, 1306, 1329."
+
+Based on Susan's answer, I found that 1163 was not in the daily survey and gave feedback.
+
+**Solved**  -> Susan said: "It is unexpected that 1163 is not in the daily survey at all. I can see they were paid for some over a year ago - I will look at the dataframes now to see if I can understand the issue!"
+
+```{r more than one user_guid}
+# print out all those user_guid of "1238", "1306", "1329"
+daily %>%
+  filter(subid %in% c("1163", "1238", "1306", "1329")) %>%
+  select(user_guid) %>%
+  distinct()
+```
+
+
+### Date Check
+First, re-code the date_time and the utc_offset
+```{r recode time}
+#### Date time
+daily$start_date <- as.POSIXct(daily$start_date, origin = "1970-01-01", tz = "UTC")
+daily$complete_date <- as.POSIXct(daily$complete_date, origin = "1970-01-01", tz = "UTC")
+daily$answer_date <- as.POSIXct(daily$answer_date, origin = "1970-01-01", tz = "UTC")
+
+
+#### Let’s convert the time difference variable into hours.
+daily <- daily %>%
+  mutate(utc_offset = str_extract(utc_offset, "-?\\d+"))
+# Convert utc_offset to numeric type (in minutes)
+daily$utc_offset <- as.numeric(daily$utc_offset)
+# Convert in hours
+daily$utc_offset <- daily$utc_offset/60
+
+daily %>% 
+  select(subid, start_date, answer_date, complete_date, utc_offset) %>% head(5)
+```
+
+Then ensure that there are no issues with the range of dates.
+```{r Checking the earliest survey}
+# Checking the earliest survey
+daily %>%
+  arrange(start_date,) %>% 
+  select(subid, user_survey_guid, start_date) %>% 
+  glimpse()
+```
+
+Official start date was *16 April 2021*.
+
+The earliest survey start date does not make sense: *2003-04-21 20:54:28*
+
+```{r}
+early_survey <- subset(daily, start_date <= as.POSIXct("2021-04-16 00:00:01"))
+paste("Suvery ID (which take survey early than 16 April 2021:", unique(early_survey$user_survey_guid))
+```
+
+**Update:** Not showing anymore because the technology department also did some work on this date issue.
+
+So, Delete rows before 16 April 2021.
+```{r delete rows}
+# # Delete rows before 16 April 2021.
+# daily <- subset(daily, start_date >= as.POSIXct("2021-04-16 00:00:01"))
+# 
+# daily %>%
+#   arrange(start_date) %>% 
+#   select(subid, user_survey_guid, start_date) %>% 
+#   glimpse()
+```
+
+Take a look on completed date
+```{r completed time}
+# Checking the completed date of earliest survey
+daily %>%
+  arrange(complete_date,) %>% 
+  select(complete_date) %>% 
+  glimpse()
+```
+
+```{r}
+# any NA?
+anyNA(daily$complete_date)
+```
+
+*"1969-12-31 23:59:59"* is automatically filled in and needs to be changed to NA.
+
+```{r 1969-12-31 23:59:59 to NA}
+# Replace dates equal to "1969-12-31" in the complete_date column with NA
+daily$complete_date <- ifelse(as_date(daily$complete_date) == as_date("1969-12-31"), NA, daily$complete_date)
+
+# The ifelse() function returns a vector in which the date and time are converted to numeric values. Therefore, the data type of daily$complete_date becomes double.
+daily$complete_date <- as.POSIXct(daily$complete_date, origin="1970-01-01", tz="UTC")
+
+daily %>%
+  arrange(complete_date) %>% 
+  select(complete_date) %>% 
+  glimpse()
+```
+
+```{r}
+# any NA?
+anyNA(daily$complete_date)
+```
+
+*Question:* How many NA in complete date?
+```{r}
+sum(is.na(daily$complete_date))
+```
+
+And check if the count of NA value in complete_date matched with the incomplete status.
+```{r}
+table(daily$status)
+```
+
+Each survey should have one unique start_date and one complete_date
+```{r Make sure each start_date with one complete_date}
+# Make sure each start_date with one complete_date
+start_data_df <- daily %>%
+  filter(!is.na(complete_date)) %>%
+  group_by(start_date) %>%
+  summarize(num_complete_date = n_distinct(complete_date))
+
+unique(start_data_df$num_complete_date)
+```
+
+*Checked each start date only with one the complete date which is good!*
+
+
+### Duplicated rows
+
+**UPDATE:** After duscusion in Slack, Susan had rebuilt the surveys with a fix in place for these duplicate rows in the contact table.
+
+Check if there are now non-distinct rows introduced by removing the above columns
+```{r Duplicated rows}
+# Extract duplicate elements
+# Each rows are labeled, if the row is duplicated with other, it will be labeled "TRUE"
+dr <- duplicated(daily) | duplicated(daily, fromLast = TRUE)
+table(dr)
+```
+
+
+```{r save duplicated rows in dataframe}
+# save duplicated rows in dataframe
+dr_df <- daily[dr, ]
+cat("There are", nrow(dr_df), "duplicated rows in daily survey data before removing any other column or variables.")
+```
+
+
+```{r}
+# cat(unique(dr_df$subid), "who is/are having duplicated rows.")
+```
+
+**Now, there are no duplicated case!!!!!**
+
+**Information from Susan:** I looked back over our issue logs and found a different user having this same issue, which we discussed with our technician over at CHESS. He explained that if the user is experiencing a poor connection when the time the app tries to upload a completed survey, this could happen.
+
+**And Now we are good to go for next step.**
+
+The codes below are I tried to solve it by deleting those duplicated rows. And those codes are **Not helpful** for further steps.
+
+```{r}
+# # target id: 1069's duplicated rows
+# target_1069 <- daily$subid == 1069
+# 
+# # Mark duplicate rows of target
+# target_first_occurrence <- !duplicated(daily)
+# 
+# # Remove duplicate rows that are not the first occurrence of target id
+# cleaned_1069 <- daily[!target_1069 | target_first_occurrence, ]
+# 
+# cat("Participant 1069 had", nrow(daily) - nrow(cleaned_1069), "duplicate rows, and they were removed.")
+```
+
+
+```{r}
+# #And check again is there any duplicated rows.
+# check_dupli <- duplicated(cleaned_1069) | duplicated(cleaned_1069, fromLast = TRUE)
+# table(check_dupli)
+```
+
+
+
+## EDA
+
+### 1. Basic
+
+**Question:** How many participants?
+```{r How many participants?}
+paste("We have", length(unique(daily$subid)), "participants for now.")
+```
+
+**Question:** How many survey are recorded for now?
+```{r How many survey are recorded for now?}
+count_question <- daily %>%
+  count(subid, user_survey_guid, name = "num_question")
+
+paste("We have", nrow(count_question), "surveys in total for now.")
+```
+
+**Question:** How many questions are a single survey?
+```{r How many questions are a single survey?}
+paste("We have", length(unique(daily$variable_name)), "question in a survey")
+```
+
+
+### 2. Completion Status
+
+```{r}
+table(daily$status)
+```
+
+#### Complete
+```{r}
+data_comp <- daily[daily$status == "complete", ]
+
+paste("We have", nrow(count_question), "surveys in total for now. And there were", length(unique(data_comp$user_survey_guid)), "completed surveys.")
+```
+
+```{r}
+paste("In", nrow(data_comp), "questions records with complete status, there are still having", sum(is.na(data_comp$answer)), "missing answers")
+```
+
+- If an answer was not displayed (for example - lapse_date is not displayed 
+
+- If lapse is answered "no") OR if the question was skipped, it should have NA value in the answer column.
+
+- If the user only answered the first question(s), no additional entries are made in the surveys_user_answers table, so what you're seeing there is also correct.*
+
+
+#### Incomplete
+```{r}
+data_incomp <- daily[daily$status == "incomplete", ]
+
+paste("There were", length(unique(data_incomp$user_survey_guid)), "incompleted surveys")
+```
+
+```{r}
+paste("In", nrow(data_incomp), "questions records with incomplete status, there are only", sum(is.na(data_incomp$answer)), "are NA, which do not have any answer.")
+```
+
+**Question:** How many participants had not completed the survey?
+```{r}
+paste("There were", length(unique(data_incomp$subid)), "participants had not completed the survey.")
+```
+
+These people had a history of not completing the questionnaire.
+```{r}
+unique(data_incomp$subid)
+```
+
+**Question:** Who were more likely to not complete the survey?
+```{r multiple_incomp_srvy}
+multiple_incomp_srvy <- data_incomp %>%
+  group_by(subid) %>%
+  summarize(survey_count = n_distinct(user_survey_guid))
+
+multiple_incomp_srvy %>% 
+  filter(survey_count > 1) %>% glimpse()
+```
+
+Check how many times each person has filled out the questionnaire among those who have not completed the questionnaire.
+```{r}
+incomp_hist <- count_question[count_question$subid %in% data_incomp$subid, ]
+
+table(incomp_hist$subid)
+```
+
+*The highest number of people who failed to complete the questionnaire was recorded only 4 times. Moreover, the total number of times they answered cannot accurately identify untrustworthy participants.*
+
+
+### EDA-Compeleted Survey
+```{r}
+each_survey <- data_comp %>%  
+  group_by(subid, user_survey_guid, start_date, complete_date) %>% 
+  summarize(question_count = n(), .groups = "drop")
+
+each_survey$survey_duration_sec <- each_survey$complete_date - each_survey$start_date
+each_survey$survey_duration_sec <- as.numeric(each_survey$survey_duration_sec)
+each_survey$survey_duration_min <- each_survey$survey_duration_sec / 60
+
+each_survey$question_count <- as.numeric(each_survey$question_count)
+each_survey %>% glimpse()
+```
+
+**Question:** Did everyone answered all 15 question in completed survey? 
+
+**Less than 15**
+```{r less 15q}
+paste("There are", nrow(each_survey[each_survey$question_count < 15, ]),
+      "completed surveys less than 15 question.")
+```
+
+```{r}
+less_15q <- each_survey[each_survey$question_count < 15, ]
+
+ggplot(less_15q, aes(x = question_count)) +
+  geom_bar(fill = "skyblue", color = "black") +
+  geom_text(stat = "count", aes(label = paste(after_stat(count))), vjust = -0.5) +
+  labs(x = "Number of Questions",
+       y = "Frequency",
+       title = "Histogram of Completed Survey with Less than 15-Question")
+```
+
+**More than 15**
+
+**Note:** This issue still need more discussion.
+```{r}
+paste("There are", nrow(each_survey[each_survey$question_count > 15, ]),
+      "completed surveys more than 15 question.")
+```
+
+```{r}
+more_15q <- each_survey[each_survey$question_count > 15, ]
+
+ggplot(more_15q, aes(x = question_count)) +
+  geom_bar(fill = "skyblue", color = "black") +
+  geom_text(stat = "count", aes(label = paste(after_stat(count))), vjust = -0.5) +
+  labs(x = "Number of Questions",
+       y = "Frequency",
+       title = "Histogram of Completed Survey with More than 15-Question")
+```
+
+```{r}
+paste(names(table(more_15q$subid)), "had", table(more_15q$subid), "survey with more than 15 questions.")
+```
+
+**Question:** Which question they were have answered more than one times?
+```{r extra_ans}
+extra_ans <- daily[daily$user_survey_guid %in% more_15q$user_survey_guid, ]
+
+table(extra_ans$variable_name)
+```
+
+**Question:** How many duplicated questions are recorded?
+```{r}
+# find out the rows with question were answered more than one times.
+extra_ans_dup <- extra_ans %>%
+  count(user_survey_guid, variable_name, name = "num_answer") %>% 
+  glimpse()
+
+paste("There are",sum(extra_ans_dup$num_answer == 2), "question in total had answered twice in,",length(unique(extra_ans_dup$user_survey_guid)), "surveys.")
+```
+
+
+```{r matched_rows}
+extra_ans_filtered <- extra_ans_dup[extra_ans_dup$num_answer == 2, ]
+
+# Initialize an empty data frame to store rows that meet the conditions
+matched_rows <- data.frame(user_survey_guid = character(),
+                           variable_name = character(),
+                           num_answer = integer())
+
+# Loop through each row in extra_ans_filtered
+for (i in 1:nrow(extra_ans_filtered)) {
+  # Get the user_survey_guid and variable_name of the current row
+  current_user_survey_guid <- extra_ans_filtered$user_survey_guid[i]
+  current_variable_name <- extra_ans_filtered$variable_name[i]
+  
+  # Find matching rows in daily
+  matched_row <- daily[daily$user_survey_guid == current_user_survey_guid & 
+                         daily$variable_name == current_variable_name, ]
+  
+  # If a matching row is found, add it to matched_rows
+  if (nrow(matched_row) > 0) {
+    matched_rows <- rbind(matched_rows, matched_row)
+  }
+}
+
+matched_rows <- matched_rows %>% select(user_survey_guid, answer_date, answer, question_type, variable_name, everything())
+
+head(matched_rows, 6)
+```
+
+
+## Valid Survey
+In order to select a reliable questionnaire, I think it is best to observe the time it takes to answer the completed questionnaire.
+
+However, the number of question in each completed survey is not all 15.
+
+So, let's filter out the completed survey with 15 question to check the average duration of each survey.
+```{r}
+comp_15 <- each_survey[each_survey$question_count == 15, ]
+
+ggplot(comp_15, aes(x = survey_duration_min)) +
+  geom_histogram(binwidth = 1, fill = "skyblue", color = "black") +
+  ggtitle(paste("Survey Duration of Each Completed with 15 Questions", "\nSample Size:", nrow(comp_15))) +
+  ylab("Frequency") +
+  xlab("Duration in Minute")
+```
+
+The distribution of survey duration is extremely right-skewed, so I am shortening the duration to within 30 minutes.
+```{r}
+comp_15 <- comp_15[comp_15$survey_duration_min <= 30, ]
+
+ggplot(comp_15, aes(x = survey_duration_min)) +
+  geom_histogram(binwidth = 1, fill = "skyblue", color = "black") +
+  ggtitle(paste("Survey Duration of Each Completed with 15 Questions", "\nSample Size:", nrow(comp_15), "(duration_min <= 30)")) +
+  ylab("Frequency") +
+  xlab("Duration in Minute")
+```
+
+The distribution of survey duration still right-skewed, so I am shortening the duration to within 10 minutes.
+```{r}
+comp_15 <- comp_15[comp_15$survey_duration_min <= 10, ]
+
+ggplot(comp_15, aes(x = survey_duration_min)) +
+  geom_histogram(binwidth = 1, fill = "skyblue", color = "black") +
+  ggtitle(paste("Survey Duration of Each Completed with 15 Questions", "\nSample Size:", nrow(comp_15), "(duration_min <= 10)")) +
+  ylab("Frequency") +
+  xlab("Duration in Minute")
+```
+
+The distribution of survey duration still right-skewed, so I am shortening the duration to within 5 minutes.
+```{r}
+comp_15 <- comp_15[comp_15$survey_duration_min <= 5, ]
+
+ggplot(comp_15, aes(x = survey_duration_min)) +
+  geom_histogram(binwidth = 1, fill = "skyblue", color = "black") +
+  ggtitle(paste("Survey Duration of Each Completed with 15 Questions", "\nSample Size:", nrow(comp_15), "(duration_min <= 5)")) +
+  ylab("Frequency") +
+  xlab("Duration in Minute")
+```
+
+Calculate everyone's Average Duration
+```{r}
+# Calculate average duration for each person and other summary stats information
+comp_15_avg <- comp_15 %>%
+  group_by(subid) %>%
+  reframe(
+    minute_mean = mean(survey_duration_min, na.rm = TRUE),
+    minute_median = median(survey_duration_min, na.rm = TRUE),
+    minute_sd = sd(survey_duration_min, na.rm = TRUE),
+    minute_min = min(survey_duration_min, na.rm = TRUE),
+    minute_max = max(survey_duration_min, na.rm = TRUE),
+    minute_quantile_25 = quantile(survey_duration_min, na.rm = TRUE, probs = 0.25),
+    minute_quantile_75 = quantile(survey_duration_min, na.rm = TRUE, probs = 0.75)
+  )
+
+head(comp_15_avg, 6)
+```
+
+```{r}
+ggplot(comp_15_avg, aes(y = minute_mean)) +
+  geom_boxplot(alpha = 0.5) +
+  ggtitle("Survey Duration Mean") +
+  ylab("Average Time (in Minutes)") 
+```
+
+```{r}
+ggplot(comp_15_avg, aes(y = minute_sd)) +
+  geom_boxplot(alpha = 0.5) +
+  ggtitle("Survey Duration SD") +
+  ylab("SD (in Minutes)") 
+```
+
+```{r}
+# This questionnaire took the shortest time. This questionnaire only took 12.19 seconds.
+daily[daily$user_survey_guid == "5433c348-bd36-4a9f-bf5e-c5695596c849", ] %>% 
+  select(start_date, complete_date, answer_date, answer, everything())
+```
+
+```{r}
+# Check this person’s average time
+comp_15_avg[comp_15_avg$subid == "1193", ]
+```
+
+**Note:** I found that the anser_date of this questionnaire is exactly the same. So check how many files have exactly the same anser_date
+
+```{r}
+ans_date_check <- daily[daily$user_survey_guid %in% comp_15$user_survey_guid, ]
+
+ans_date_check <- ans_date_check %>%
+  group_by(user_survey_guid) %>%
+  filter(n_distinct(answer_date) == 1)
+
+paste("There are", length(unique(ans_date_check$user_survey_guid)), "have same answer date over", nrow(comp_15))
+```
+
+
+**Update:** There is no way to check the survey quality by the answer date because the data were not recorded well. We need to discuss this in the lab meeting or on Slack.
+
+## Draft (Exploring continue)
+**Question:** Why slightly different counts for each question?
+```{r}
+table(daily$variable_name)
+```
+
+Let's get how many times each person answered different types of questions
+```{r}
+# Create a DF to record how many times each question was answered
+variable_count <- daily %>%
+  group_by(subid, variable_name) %>%
+  summarize(count = n()) %>%
+  pivot_wider(names_from = variable_name, values_from = count, values_fill = 0)
+
+glimpse(variable_count)
+```
+
+Find out people who had different count in the total number of times answering each question.
+```{r}
+# I assume the value of each variable in adherence to surge is in the corresponding column. If each variable is equal to the value of adherence, the value of the new column variable_consistency is 0, otherwise it is 1.
+
+variable_count <- variable_count %>%
+  mutate(variable_consistency = ifelse(
+    adherence == angry & 
+    adherence == anxious &
+    adherence == confidence &
+    adherence == depressed &
+    adherence == drugs &
+    adherence == happy &
+    adherence == hassle &
+    adherence == motivation &
+    adherence == pain &
+    adherence == pleasant &
+    adherence == relaxed &
+    adherence == risk &
+    adherence == sleep &
+    adherence == urge, 0, 1
+  ))
+
+# filter out the count for each question are not having same number of count.
+not_consist <- filter(variable_count, variable_consistency == 1) %>% glimpse()
+```
+
+```{r}
+unique(not_consist$subid)
+```
+
+
+**Question:** Could incomplete status be influenced by travel status?
+```{r different timezone}
+### count how many timezone are recorded for each person
+offset_hours_count <- data_incomp %>%
+  group_by(subid) %>%
+  summarize(unique_offset_hours = n_distinct(utc_offset))
+
+ggplot(offset_hours_count, aes(x = factor(unique_offset_hours))) +
+  geom_bar(fill = "lightblue") +
+  geom_text(stat = 'count', aes(label = after_stat(count)), vjust = -0.5) +
+  labs(x = "Unique Offset Hours", y = "Frequency", title = "Distribution of Unique Offset Hours") +
+  theme_bw()
+```
+
+
+3. Finding out the outlier of average duration time in the whole sample size
+```{r}
+# merged_df <- left_join(complete_ans, each_survey, by = c("subid", "start_date", "complete_date"))
+# merged_df <- merge(merged_df, sum_time_avg, by = "subid", all.x = TRUE)
+# 
+# # Filter based on avg_time_quantile_25 and avg_time_quantile_75
+# rm_outlier <- merged_df %>%
+#   filter(ans_avg_time >= avg_time_quantile_25 & ans_avg_time <= avg_time_quantile_75)
+# 
+# rm_outlier <- rm_outlier %>%
+#   select(subid, ans_avg_time, avg_time_quantile_25, avg_time_quantile_75, everything()) %>%
+#   glimpse()
+```
+
+
+```{r}
+# rm_outlier_sum <- rm_outlier  %>% 
+#   group_by(subid, start_date, complete_date) %>% 
+#   summarize(question_count = n(), .groups = "drop")
+# 
+# rm_outlier_sum$survey_duration <- rm_outlier_sum$complete_date - rm_outlier_sum$start_date
+# rm_outlier_sum$survey_duration <- as.numeric(rm_outlier_sum$survey_duration)
+# 
+# rm_outlier_sum$ans_avg_time <- rm_outlier_sum$question_count / rm_outlier_sum$survey_duration
+# 
+# 
+# rm_outlier_sum <- rm_outlier_sum %>%
+#   group_by(subid) %>%
+#   reframe(
+#     avg_time_mean = mean(ans_avg_time, na.rm = TRUE),
+#     avg_time_median = median(ans_avg_time, na.rm = TRUE),
+#     avg_time_sd = sd(ans_avg_time, na.rm = TRUE),
+#     avg_time_min = min(ans_avg_time, na.rm = TRUE),
+#     avg_time_max = max(ans_avg_time, na.rm = TRUE),
+#     avg_time_quantile_25 = quantile(ans_avg_time, na.rm = TRUE, probs = 0.25),
+#     avg_time_quantile_75 = quantile(ans_avg_time, na.rm = TRUE, probs = 0.75)
+#   )
+```
+
+```{r}
+# head(rm_outlier_sum, 6)
+```
+
+
+
+```{r}
+# histogram1 <- ggplot(sum_time_avg, aes(x = avg_time_mean, fill = "Before Removed")) +
+#   geom_histogram(alpha = 0.5) +
+#   labs(title = "Histogram of avg_time_mean") +
+#   theme_minimal()
+# 
+# plot_overlay <- histogram1 +
+#   geom_histogram(data = rm_outlier_sum, aes(fill = "Outlier Removed"), alpha = 0.5　) +
+#   scale_fill_manual(values = c("blue", "red"), guide = FALSE) +  
+#   labs(fill = "Dataset") +  # 图例标题
+#   guides(fill = guide_legend(title = "Dataset")) 
+# 
+# plot_overlay　
+```
+
+
+```{r}
+# cat("Rows in completed and no duplicated:", nrow(merged_df), "\n")
+# cat("Rows in after remove the outlier base on each average durtion:", nrow(rm_outlier), "\n")
+```
+
+
+### Save Daily Surveys
+```{r save_daily}
+# daily |> write_csv(here::here(path_processed, "survey_daily.csv"))
+```
