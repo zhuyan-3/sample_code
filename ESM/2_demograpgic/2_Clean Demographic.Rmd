@@ -13,41 +13,35 @@ editor_options:
 ---
 
 ## Introduction
-In this file, I will  clean and preprocess Demographic data from Baseline data of ESM study. The goal is to prepare the data for analysis and visualization.
+In this file, I will clean and preprocess Demographic data from Baseline data of ESM study. The goal is to prepare the data for analysis.
 
 **Note:** The data file is from the CSV file which generated from Data Anonymization.Rmd
 
+Check and view all the variable of Demographic data.
+
 ## Set up
-```{r set up, echo=TRUE, results='hide'}
+### load packages
+```{r set up, echo=FALSE}
 library(tidyverse)
 library(dplyr)
 library(skimr)
 library(janitor)
 library(skimr)
+source("/Users/yan/Desktop/sample_code/functions.R")
 ```
 
+### read data
 ```{r read data}
+# dis2, dis_inj, dis_combined, dis_mult, rel, smu (In old code book, but not in the data)
+# ADD! I will create a new Code Book which could be found in repo/sample_code
+
 demog <- read_csv("/Users/yan/Desktop/sample_code/ESM/1_anonymization/anonymous_baseline.csv") %>% 
   select(random_id, age, res, sch_yr, race, mult, race_txt, eth, dis1, dis_dev,
          dis_lrn, dis_sen, dis_mob, dis_psy, dis_unl, dis_txt, dis_ill,dis_dev,
-         gend, trans, sx_ori,, dem12, f_aid, p_grnt, job, f_need, fgen) %>% glimpse()
-
-# dis2, dis_inj, dis_combined, dis_mult, rel, smu 
-# Those varibales are in the baseline codebook,but not in the data file.
+         gend, trans, sx_ori,, dem12, f_aid, p_grnt, job, f_need, fgen) %>% glimpse(show_col_types = FALSE)
 ```
 
-Change the column type.
-```{r}
-demog <- demog %>%
-  mutate(across(-c(age, sch_yr), as.character))
-```
-
-```{r}
-skim(demog)
-```
-
-
-## Variable Checking and Editing
+## Variable Check
 
 ### Age
 Variable code as "age"
@@ -56,6 +50,7 @@ Survey Question: "How old are you?"
 ggplot(demog, aes(x = age)) +
   geom_bar(fill = "skyblue", color = "black") +
   geom_text(stat = "count", aes(label = after_stat(count)), vjust = -0.5) +
+  scale_x_continuous(breaks = seq(min(demog$age), max(demog$age), by = 1)) +
   labs(x = "Age",
        y = "Frequency",
        title = "Histogram of Age",
@@ -81,46 +76,211 @@ demog$res <- ifelse(demog$res == 4, "Off campus apartment", demog$res)
 demog$res <- ifelse(demog$res == 5, "Off campus with parents", demog$res)
 demog$res <- ifelse(demog$res == 6, "Off campus with parents", demog$res)
 demog$res <- ifelse(demog$res == 8, "Off campus fraternity/sorority house", demog$res)
-table(demog$res)
+prop_tab(demog, res)
 ```
-
-```{r}
-ggplot(demog, aes(x = reorder(factor(res), -table(res)[factor(res)]))) +
-  geom_bar(fill = "skyblue", color = "black") +
-  geom_text(stat = "count", aes(label = after_stat(count)), vjust = -0.5) +
-  labs(x = "Residence Type",
-       y = "Frequency",
-       title = "Frequency of Residence Types") +
-  theme_bw() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-```
-
 
 ### School Tear
 Variable code as "sch_yr"
 What is your year in school?
 ```{r}
-hist(demog$sch_yr)
+prop_tab(demog, sch_yr)
 ```
 
 ### Race
 Variable code as "race"
 Recognizing that race is complex, which of the following classifications of race best describe how you identify?
-```{r}
-
-```
-
-### multiracial
-Variable code as "mult"
-Open text-entry responses from individuals identifying as multiracial
-```{r}
-
-```
 
 ```{r}
-
-demog[demog$race=="Text-entry",]
+# Checking NA
+sum(is.na(demog$race))
 ```
+
+Most of the variables having NA values is reasonable because there were no applicable options to describe our participants. However, Race has 2 missing data points which seem unexpected if "mult" and "race_txt" are also NA because they are open text-entry responses. Let's check those two rows.
+```{r}
+# check the rows with NA in Race
+demog[is.na(demog$race), ]
+```
+
+*There were no information in race_txt and mult(Open text-entry responses from individuals identifying as multiracial). I would label it with "Unknown" string*
+
+```{r}
+# Change NA to string.
+demog$race <- ifelse(is.na(demog$race), "Unknown", demog$race)
+prop_tab(demog, race)
+```
+
+More data cleaning on race! Text-entry is also an unexpected answer.
+```{r}
+# make sure if "Text-entry" with other information about race in other columns
+demog[demog$race == "Text-entry", ]
+```
+
+*Nope, I will replace "Unknown" instead of "Text-entry"*
+```{r}
+demog$race <- ifelse(demog$race == "Text-entry", "Unknown", demog$race)
+prop_tab(demog, race)
+```
+
+```{r}
+demog[!is.na(demog$race_txt), ]
+```
+
+```{r}
+demog[!is.na(demog$mult), ]
+```
+
+### Ethnicity
+Do you identify as Hispanic or Latino/Latina or Latinx?
+```{r}
+prop_tab(demog, eth)
+# 1 = Yes, 0 = No, 3 = prefer not to respond
+```
+
+### Disability
+Do you consider yourself to have a disability or be disabled? (e.g., intellectual disability, learning disability, sensory disability, mobility disability, mental illness, etc.)
+```{r}
+prop_tab(demog, dis1)
+```
+
+```{r}
+prop_tab(demog, dis_dev)
+```
+
+
+```{r}
+# Select columns containing "dis_" in their column names
+dis_columns <- demog %>%
+  select(contains("dis_"))
+
+# Count the number of NAs in each column
+na_counts <- colSums(is.na(dis_columns))
+na_counts
+```
+
+Except "dis_txt", the count the number of columns which containing "dis_" should be 221. However, the NA count here seems not right.
+```{r}
+# List the column names that need to be replaced
+cols_to_replace <- c("dis_dev", "dis_lrn", "dis_sen", "dis_mob", "dis_psy", "dis_unl", "dis_ill")
+
+# Use mutate and across to replace
+demog <- demog %>%
+  mutate(across(all_of(cols_to_replace), ~ifelse(is.na(.), 0, .)))
+
+demog <- demog %>%
+  mutate(dis_txt = ifelse(is.na(dis_txt), "None", dis_txt))
+```
+
+
+
+### Gender
+Recognizing that gender is complex, how would you describe your gender?
+```{r}
+# 1 = Man, 2 = Woman, 3 = Non-binary, 4 = Gender fluid, 5 = Two-Spirit, 6 = Agender, 7 = Pangender, 8 = Another gender identity [Write in]
+prop_tab(demog, gend)
+```
+
+```{r}
+demog$gend <- ifelse(demog$gend == 1, "Male", demog$gend)
+demog$gend <- ifelse(demog$gend == 2, "Female", demog$gend)
+demog$gend <- ifelse(demog$gend == 4, "Other", demog$gend)
+demog$gend <- ifelse(demog$gend == 5, "Other", demog$gend)
+prop_tab(demog, gend)
+```
+
+
+Question: Are you transgender?
+```{r}
+# 1 = Yes, 0 = No
+prop_tab(demog, trans)
+```
+
+Question: Recognizing that sexual orientation can be fluid, how would you describe your current sexual orientation?
+```{r}
+prop_tab(demog, sx_ori)
+```
+
+```{r}
+# 1 = Gay, 2 = Lesbian, 3 = Bisexual, 4 = Pansexual, 5 = Heterosexual/Straight, 6 = Other [Write in]
+demog$sx_ori <- recode(demog$sx_ori, 
+                       `1` = "Gay",
+                       `2` = "Lesbian",
+                       `3` = "Bisexual", 
+                       `4` = "Pansexual",
+                       `5` = "Heterosexual",
+                       `6` = "Other")
+
+prop_tab(demog, sx_ori)
+```
+
+
+```{r}
+glimpse(demog$dem12)
+```
+
+
+Question: Do you participate in any of the following activities (check all that apply):
+```{r}
+# These question is a multiple choice question, and each number represent an activity option.
+## Select all that apply: 1=Athletics; 2=Club sports; 3=Greek life; 4=Registered student organizations; 5=Volunteer work; 6=Associated students of Madison; 7=Work-study; 8=Research Involvement; 9=Religious-affiliated student organizations
+demog$dem12 <- sapply(strsplit(as.character(demog$dem12), ""), function(x) paste(x, collapse = ","))
+glimpse(demog$dem12)
+```
+
+
+Count number of acvitity were select in question dem12.
+```{r}
+demog$num_activity <- str_count(demog$dem12, "\\d+")
+range(demog$num_activity)
+```
+
+Do you receive financial aid?
+```{r}
+# 1 = Yes, 0 = No
+prop_tab(demog, f_aid)
+```
+
+Have you ever received a Pell grant?
+```{r}
+# 1 = Yes, 0 = No
+prop_tab(demog, p_grnt)
+```
+
+Do you work for pay during the school year?
+```{r}
+# 1 = Yes, 0 = No
+prop_tab(demog, job)
+```
+
+Since you have been a student at UW-Madison, how often have you had difficulty paying for basic necessities like food, clothing, or rent?
+```{r}
+# 1 = Never, 2 = Rarely, 3 = Sometimes, 4 = Often, 5 = All the time
+prop_tab(demog,f_need)
+```
+
+Would you consider yourself a first-gen college student (meaning your parents never completed a 4-year college or university degree)? 
+```{r}
+# 1 = Yes, 0 = No, 3 = Not sure
+prop_tab(demog, fgen)
+```
+
+```{r}
+demog <- demog %>% select(random_id, age, res, sch_yr, race, 
+                          mult, race_txt, eth, dis1, dis_dev,
+                          dis_lrn, dis_sen, dis_mob, dis_psy, dis_unl, 
+                          dis_txt, dis_ill, gend, trans, sx_ori,
+                          dem12, num_activity, everything())
+glimpse(demog)
+```
+
+
+## Write CSV
+```{r}
+write.csv(demog, "/Users/yan/Desktop/sample_code/ESM/2_demograpgic/demog_data.csv", row.names = FALSE)
+```
+
+
+
+
 
 
 
