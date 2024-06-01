@@ -9,7 +9,7 @@ format:
     toc: true 
     toc_depth: 4
 editor_options: 
-  chunk_output_type: inline
+  chunk_output_type: console
 ---
 ## Introduction
 
@@ -17,7 +17,15 @@ editor_options:
 
 2. Divide the different question sets.
 
-3. Analysis all of 7 question sets.
+- ALCOHOL USE
+- PARTNERED SEXUAL BEHAVIOR (PSB) & CONDOM USE BEHAVIOR (CUB)
+- ONLINE SEXUAL BEHAVIOR (OSB)
+- SOLO SEXUAL BEHAVIOR (SSB)
+- DRUG USE BEHAVIOR (DUB)
+- GENERAL MENTAL HEALTH BLOCK 
+
+3. Analysis all of 6 question sets.
+
 
 ## Set Up
 ```{r setup, echo=TRUE, message=FALSE}
@@ -30,6 +38,7 @@ library(skimr)
 library(psych)
 library(knitr)
 library(ggplot2)
+library(car)
 ```
 
 ```{r, warning=FALSE}
@@ -38,7 +47,8 @@ daily <- read_csv("/Users/yan/Desktop/sample_code/ESM/1_anonymization/anonymous_
 
 ## General Information
 ```{r}
-cat("We have", nrow(daily), "survey records, and there are", length(unique(daily$random_id)), "participants.")
+daily <- daily[daily$progress == 100, ]
+cat("We have", nrow(daily), "completed survey records, and there are", length(unique(daily$random_id)), "participants.")
 ```
 
 **Question:** How many survey records for each participant.
@@ -61,68 +71,117 @@ ggplot(each_id, aes(x = num_survey)) +
   theme_bw()
 ```
 
-**Question: Alcohol use ** 
+## Divide
 
+### Alcohol use
 Since the last survey, have you had 1 or more alcoholic drinks? A standard drink is a 12 oz beer, a 8-9 oz of malt liquor, a 5 oz glass of wine, or a 1.5 ounce shot
 ```{r}
 prop_tab(daily, aub1) # Yes = 1, No = 0, Prefer not to respond = 3
 ```
 
+```{r}
+alcohol_use <- daily[daily$aub1 == 1, ]
 
+alcohol_use <- alcohol_use %>% select(random_id, id_day, recorded_date, status, progress,
+                                      duration_in_seconds, au_t, au_v, au_l, au_loc_txt, 
+                                      au_pbs, au_pbs_txt, au_pg, au_dg, au_bib, au_fib, au_drg)
+```
 
-**Question: Partnered sexual behavior** 
-
+### Partnered sexual behavior
 Since the last survey, have you hooked up, engaged in any sexual activity, or tried to engage in any sexual activity with another person (including flirting, kissing, touching, or intercourse)?
 ```{r}
 prop_tab(daily, psb1) # Yes = 1, No = 0, Prefer not to respond = 3
 ```
 
-**Question: Online sexual behavior** 
+```{r}
+ps_behavior <- daily[daily$psb1 == 1, ]
 
+ps_behavior <- ps_behavior %>% select(
+  random_id, id_day, recorded_date, status, progress, duration_in_seconds, 
+  psb2, cub1, cub2, cub3, cub4, cub5, cub6, psb3, psb4, psb5, psb5a, psb6, psb6a,
+  str_p, str_p_txt, psb7, psb8, psb9, psb7a, psb8a, psb9a, psb10, psb10a, psb11, psb11a, 
+  med1_p, med2_p, med3_p, med4_p, aro_pf, pls_pf, con_pf, ver_pc, enon_pc, inon_pc, 
+  prp_v, prp_p, prp_sf, prp_in, vic_v, vic_p, vic_sf, vic_in, exp_p, st_p,
+  pa1_p, na1_p, na2_p, na3_p, na4_p, na5_p, pa2_p, er1_p, er2_p, er3_p, er4_p)
+```
+
+### Online sexual behavior 
 Since the last survey, have you used any websites, dating apps, or social platforms to look for sexual imagery, partners, or content?
 ```{r}
 prop_tab(daily, osb1) # Yes = 1, No = 0, Prefer not to respond = 3
 ```
 
+```{r}
+os_behavior <- daily[daily$osb1 == 1, ]
 
-**Question: Solo sexual activity** 
+os_behavior <- os_behavior %>% 
+  select(
+    random_id, id_day, recorded_date, status, progress, duration_in_seconds, 
+    osb2, osb2_txt, osb3, osb4, osb5, osb6, osb6_txt, osb7, osb8, 
+    osb9, osb10, aro_of, pls_of, pss, exp_o, str_o, pa1_o, 
+    na1_o, na2_o, na3_o, na4_o, pa2_o, na5_o, 
+    er1_o, er2_o, er3_o, er4_o)
+```
 
+### Solo sexual activity
 Since the last survey, have you engaged in any solo sexual activity (i.e., masturbation)?
 ```{r}
 prop_tab(daily, ssb1) # Yes = 1, No = 0, Prefer not to respond = 3
 ```
 
-**Question: Drug use** 
+```{r}
+ss_behavior <- daily[daily$ssb1 == 1, ]
 
+ss_behavior <- ss_behavior %>%
+  select(
+    random_id, id_day, recorded_date, status, progress, duration_in_seconds, 
+    ssb2, ssb3, ssb3_txt, ssb4, ssb5, ssb6,
+    aro_sf, pls_sf, exp_s, str_s, pa1_s, na1_s, na2_s, na3_s, 
+    na4_s, na5_s, pa2_s, er1_s, er2_s, er3_s, er4_s)
+```
+
+
+### Drug use
 Since the last survey, have you used any recreational drugs (e.g., marijuana, cocaine) or prescription medications?
 ```{r}
 prop_tab(daily, dub1) # Yes = 1, No = 0, Prefer not to respond = 3
 ```
 
-```{r}
-daily[is.na(daily$dub1), ]
-```
-
-*There are NA because they had said "No" or "Prefer not to respond" to most of the questions above but skipped "bpa" (bar and party attendance) because they thought it was "Not applicable" to them (i.e., I did not drink, so I do not need to answer this question about where people drink).*
-
-**Question: Drinking contexts**
-
-Since the last survey, have you been to a bar, club, or party?
-```{r}
-prop_tab(daily, bpa) # Yes = 1, No = 0, Prefer not to respond = 3
-```
-
 *There are NA because they had said "No" or "Prefer not to respond" to most of the questions above.*
 
-**Question: Pornography**
+```{r}
+daily[is.na(daily$dub1),] %>% 
+  select(aub1, psb1, osb1, ssb1)
+```
 
+```{r}
+drug_use <- daily[daily$dub1 == 1, ]
+
+drug_use <- drug_use %>% 
+  select(
+    random_id, id_day, recorded_date, status, progress, duration_in_seconds, 
+    dub2, dub2_txt,
+    med1_d, med2_d, med3_d, med4_d,
+    exp_d, str_d, dub3_bf, dub3_bf_txt, dub3_du, dub3_du_txt, dub3_af, dub3_af_txt,
+    dub4, dub5, dub6
+    )
+```
+
+### Drinking contexts
+```{r}
+prop_tab(daily, bpa)
+```
+
+*NA in "bpa" (bar and party attendance) because they thought it was "Not applicable" to them (i.e., I did not drink, so I do not need to answer this question about where people drink).*
+
+### Pornography
 Since the last survey, have you viewed any pornographic material?
 ```{r}
 prop_tab(daily, pub1) # Yes = 1, No = 0, Prefer not to respond = 3
 ```
 
 
-## General Mental Health Block
+### General Mental Health Block
 Let's check the proportion of answered General Mental Health Block
 ```{r}
 # Define the list of columns
@@ -138,6 +197,35 @@ daily <- daily %>%
 prop_tab(daily, general_mh)
 ```
 
+```{r}
+general_mh <- daily[daily$general_mh == 1, ]
+
+general_mh <- general_mh %>% 
+  select(random_id, id_day, day, recorded_date, status, progress, duration_in_seconds, 
+         imp1, imp2, imp3, imp4,
+         dep1, dep2, insom, fatig, 
+         anx1, anx2, 
+         traum1, traum2, traum3, traum4)
+```
+
+**Sum Scores MH**
+```{r}
+# Very slightly or not at all = 1; A little = 2; Moderately = 3; Quite a bit = 4; Extremely = 5
+general_mh$imp_sum <- general_mh$imp1 + general_mh$imp2 + general_mh$imp3 + general_mh$imp4
+
+# 0 = Not at all; 1 = Somewhat; 2 = Quite a bit; 3 = Entirely
+general_mh$dep_sum <- general_mh$dep1 + general_mh$dep2
+
+# 0 = Not at all; 1 = Somewhat; 2 = Quite a bit; 3 = Entirely
+general_mh$anx_sum <- general_mh$anx1 + general_mh$anx2
+
+# 0 = Not at all; 1 = A little bit; 2 = Moderately; 3 = Quite a bit; 4 = Extremely; 5 = Not applicable--I have never had a very stressful or traumatic experience
+general_mh$traum_sum <- general_mh$traum1 + general_mh$traum2 + general_mh$traum3 + general_mh$traum4
+
+skim(general_mh)
+```
+
+Calculate the number of each behavior and general mental health check count for each participant.
 ```{r}
 # Count number of different type of survey were taken for each participant.
 
@@ -155,86 +243,194 @@ type_counts <- daily %>%
     general_mh_count = sum(general_mh == 1)
   )
 
-glimpse(type_counts)
-```
-
-```{r}
 # Merge data frame
-id_counts <- merge(id_counts, type_counts, by = "random_id", all.x = TRUE)
+each_id <- merge(each_id, type_counts, by = "random_id", all.x = TRUE)
 
 # then I can delete type_counts to make my work place clean.
 rm(type_counts)
-```
 
-### Sum Scores MH
-```{r}
-# Very slightly or not at all = 1; A little = 2; Moderately = 3; Quite a bit = 4; Extremely = 5
-daily$imp_sum <- daily$imp1 + daily$imp2 + daily$imp3 + daily$imp4
-
-# 0 = Not at all; 1 = Somewhat; 2 = Quite a bit; 3 = Entirely
-daily$dep_sum <- daily$dep1 + daily$dep2
-
-# 0 = Not at all; 1 = Somewhat; 2 = Quite a bit; 3 = Entirely
-daily$anx_sum <- daily$anx1 + daily$anx2
-
-# 0 = Not at all; 1 = A little bit; 2 = Moderately; 3 = Quite a bit; 4 = Extremely; 5 = Not applicable--I have never had a very stressful or traumatic experience
-daily$traum_sum <- daily$traum1 + daily$traum2 + daily$traum3 + daily$traum4
+head(each_id, 6)
 ```
 
 
 ## 28 Surveys
 Let's focus on participant with fully 28 General Mental Health Block survey.
 ```{r}
-survey_28 <- id_counts[id_counts$general_mh_count == 28, ]
+survey_28 <- each_id[each_id$general_mh_count == 28, ]
 
-survey_28 <- daily[daily$random_id %in% survey_28$random_id, ]
+daily_28 <- daily[daily$random_id %in% survey_28$random_id, ]
 
-survey_28 <- survey_28 %>% 
-  select(random_id, day, imp_sum, dep_sum, insom, fatig, anx_sum, traum_sum)
+daily_28 <- daily_28 %>% 
+  select(id_day, aub1, psb1, osb1, ssb1, dub1, bpa, pub1)
 
-head(survey_28, 6)
+daily_28$aub1 <- ifelse(daily_28$aub1 == 0, -0.5, 0.5) # -.5 == NO; 0.5 == YES
+daily_28$psb1 <- ifelse(daily_28$psb1 == 0, -0.5, 0.5)
+daily_28$osb1 <- ifelse(daily_28$osb1 == 0, -0.5, 0.5)
+daily_28$ssb1 <- ifelse(daily_28$ssb1 == 0, -0.5, 0.5)
+daily_28$dub1 <- ifelse(daily_28$dub1 == 0, -0.5, 0.5)
+daily_28$bpa <- ifelse(daily_28$bpa == 0, -0.5, 0.5)
+daily_28$pub1 <- ifelse(daily_28$pub1 == 0, -0.5, 0.5)
+
+mh_28 <- general_mh[general_mh$random_id %in% survey_28$random_id, ]
+
+
+survey_28 <- merge(mh_28, daily_28, by = "id_day")
+
+skim(survey_28)
 ```
 
+### Impulsivity
 ```{r}
-prop_tab(survey_28, imp_sum)
-```
-
-
-```{r}
-survey_28_imp <- survey_28 %>% 
-  select(random_id, imp_sum, day) %>%
-  mutate(day = as.integer(day))
-
-# Verify the structure of survey_28_imp
-glimpse(survey_28_imp)
-
-# Create the line plots for each person with fixed y-axis scales
-ggplot(survey_28_imp, aes(x = day, y = imp_sum, group = random_id)) +
+# Create the line plots for each person
+ggplot(survey_28, aes(x = day, y = imp_sum, group = random_id)) +
   geom_line() +
-  labs(x = "Day", y = "IMP Sum", color = "Random ID") +
+  labs(x = "Day (1-28)", y = "IMP Sum", color = "Random ID") +
   theme_minimal() +
-  facet_wrap(~ random_id, scales = "fixed") +  # Change scales to "fixed"
-  ggtitle("Score Changes for Each Person")
+  facet_wrap(~ random_id, scales = "fixed") +
+  ggtitle("Impulsivity Score Changes for Each Person")
 ```
 
+```{r, results='hide'}
+model <- lmer(imp_sum ~ osb1 * bpa + (1 + day | random_id), data = survey_28)
+summary(model)
+Anova(model, type = 3, test = "F")
+```
+
+- aub1_Alcohol use
+- psb1_Partnered sexual behavior
+- osb1_Online sexual behavior: b=1.02, F(1,873.1)=5.51, p=0.01916 * 
+- ssb1_Solo sexual activity
+- dub1_Drug use
+- bpa_Drinking contexts: b=0.46, F(1,878.17)=8.80, p=0.0031 ** 
+- pub1_Pornography
+
+### Depression symptoms: Anhedonia + Mood
 ```{r}
-average_scores <- survey_28_imp %>%
-  group_by(random_id) %>%
-  summarise(avg_imp_sum = mean(imp_sum))
-
-average_scores <- left_join(average_scores, id_counts, by = "random_id")
-
-average_scores$dub1_count <- ifelse(is.na(average_scores$dub1_count), 0, average_scores$dub1_count)
-# average_scores$dub1_count[is.na(average_scores$dub1_count)] <- 0
-
-any(is.na(average_scores))
+# Create the line plots for each person
+ggplot(survey_28, aes(x = day, y = dep_sum, group = random_id)) +
+  geom_line() +
+  labs(x = "Day (1-28)", y = "Depression Sum", color = "Random ID") +
+  theme_minimal() +
+  facet_wrap(~ random_id, scales = "fixed") +
+  ggtitle("Depression Score Changes for Each Person")
 ```
 
+```{r, results='hide'}
+model <- lmer(dep_sum ~ aub1 * bpa + (1 + day | random_id), data = survey_28)
+summary(model)
+Anova(model, type = 3, test = "F")
+```
+
+- aub1_Alcohol us: b=-0.27, F(1,893.62)=10.39, p=0.001317 ** 
+- psb1_Partnered sexual behavior
+- osb1_Online sexual behavior
+- ssb1_Solo sexual activity
+- dub1_Drug use
+- bpa_Drinking contexts: b=-0.21, F(1,893.29)=4.36, 0.03717 *
+- pub1_Pornography
+
+### Sleep difficulties
 ```{r}
-# aub1_count * psb1_count * osb1_count * ssb1_count * dub1_count * bpa_count * pub1_count, average_scores
-m <- step(lm(avg_imp_sum ~ aub1_count * psb1_count *pub1_count, average_scores))
-summary(m)
+# Create the line plots for each person
+ggplot(survey_28, aes(x = day, y = insom, group = random_id)) +
+  geom_line() +
+  labs(x = "Day (1-28)", y = "Sleep Difficulties Score", color = "Random ID") +
+  theme_minimal() +
+  facet_wrap(~ random_id, scales = "fixed") +
+  ggtitle("Sleep Difficulties Score Changes for Each Person")
 ```
+
+```{r, results='hide'}
+model <- lmer(insom ~ aub1 * bpa + (1 + day | random_id), data = survey_28)
+summary(model)
+Anova(model, type = 3, test = "F")
+```
+
+- aub1_Alcohol use: b=-0.19, F(1,896.84)=9.36, p=0.002287 ** 
+- psb1_Partnered sexual behavior
+- osb1_Online sexual behavior
+- ssb1_Solo sexual activity
+- dub1_Drug use
+- bpa_Drinking contexts: b=-0.24, F(1,896.23)=10.56, p=0.001198 ** 
+- pub1_Pornography
+
+### Fatigue
+```{r}
+# Create the line plots for each person
+ggplot(survey_28, aes(x = day, y = fatig, group = random_id)) +
+  geom_line() +
+  labs(x = "Day (1-28)", y = "Fatigue Score", color = "Random ID") +
+  theme_minimal() +
+  facet_wrap(~ random_id, scales = "fixed") +
+  ggtitle("Fatigue Score Changes for Each Person")
+```
+
+```{r, results='hide'}
+model <- lmer(fatig ~ aub1 + (1 + day | random_id), data = survey_28)
+summary(model)
+Anova(model, type = 3, test = "F")
+```
+
+- aub1_Alcohol use: b=-0.15, F(1,895.85)=5.45, p=0.01972 *
+- psb1_Partnered sexual behavior
+- osb1_Online sexual behavior
+- ssb1_Solo sexual activity
+- dub1_Drug use
+- bpa_Drinking contexts
+- pub1_Pornography
+
+### Anxiety symptoms: Mood + Worry
+```{r}
+# Create the line plots for each person
+ggplot(survey_28, aes(x = day, y = anx_sum, group = random_id)) +
+  geom_line() +
+  labs(x = "Day (1-28)", y = "Anxiety Score", color = "Random ID") +
+  theme_minimal() +
+  facet_wrap(~ random_id, scales = "fixed") +
+  ggtitle("Anxiety Score Changes for Each Person")
+```
+
+
+```{r, results='hide'}
+glimpse(survey_28)
+model <- lmer(anx_sum ~ bpa + (1 + day | random_id), data = survey_28)
+summary(model)
+Anova(model, type = 3, test = "F")
+```
+
+- aub1_Alcohol use: b=-0.28, F(1,889.71)=8.95, p=0.002845 **
+- psb1_Partnered sexual behavior
+- osb1_Online sexual behavior
+- ssb1_Solo sexual activity
+- dub1_Drug use
+- bpa_Drinking contexts b=-0.28, F(1, 888.36)=6.07, p=0.0139 *
+- pub1_Pornography
+
+### Posttraumatic stress: 
+Reexperiencing, Avoidance, Negative cognitions, Hyperarousal
+```{r}
+# Create the line plots for each person
+ggplot(survey_28, aes(x = day, y = traum_sum, group = random_id)) +
+  geom_line() +
+  labs(x = "Day (1-28)", y = "Traum Score", color = "Random ID") +
+  theme_minimal() +
+  facet_wrap(~ random_id, scales = "fixed") +
+  ggtitle("Traum Score Changes for Each Person")
+```
+
+```{r, results='hide'}
+model <- lmer(traum_sum ~ aub1 * bpa + (1 + day | random_id), data = survey_28)
+summary(model)
+Anova(model, type = 3, test = "F")
+```
+
+- aub1_Alcohol use: b=-0.46, F(1,864.65)=6.78, p=0.0093626 ** 
+- psb1_Partnered sexual behavior
+- osb1_Online sexual behavior
+- ssb1_Solo sexual activity
+- dub1_Drug use
+- bpa_Drinking contexts: b=-0.59, F(1,864.66)=7.84, p=0.0052103 ** 
+- pub1_Pornography
 
 
 
