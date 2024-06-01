@@ -1,5 +1,5 @@
 ---
-title: "Data Anonymization"
+title: "Initial Cleaning and Data Anonymization"
 author: "Yan Zhu"
 date: "`r lubridate::today()`"
 format: 
@@ -22,8 +22,10 @@ This code file is used for matching IDs and data anonymization to ensure data pr
 - Setup package and read the data file
 - Execute data matching
 - Perform data anonymization
+- Do some initial cleaning
 - Delete unnecessary data
 - Generate the final result
+
 
 ## Setup
 ```{r setup, echo=TRUE, results='hide', message=FALSE, warning=FALSE}
@@ -175,18 +177,22 @@ grep("id", names(baseline), value = TRUE)
 grep("id", names(daily), value = TRUE)
 ```
 
-## Dupilicated Rows
+## Clean Baseline
+Check is there any participants have more than one rows in Baseline data.
 ```{r}
+# check duplicated rows by random_id.
 dupli_baseline <- baseline[duplicated(baseline$random_id), ]
-dupli_baseline
+cat("There are", length(unique(dupli_baseline$random_id)), "participants answered basline question more than once")
 ```
 
+In this case, I would like to keep the records with more answers.
 ```{r}
 dupli_baseline$na_count <- rowSums(is.na(dupli_baseline))
 dupli_baseline %>% select(random_id, na_count)
 ```
 
 ```{r}
+# keep rows with more answers for each random ID in duplicated rows.
 baseline$na_count <- rowSums(is.na(baseline))
 baseline <- baseline %>%
   group_by(random_id) %>%
@@ -194,12 +200,11 @@ baseline <- baseline %>%
   select(-na_count)
 ```
 
-
-Cause I will using the data which generated in this file I would like to do a little cleaning in Baseline data. 
-
-Removing some unnecessary columns.
+Next, I would like to do a little cleaning in Baseline data. 
 ```{r}
+# Removing some unnecessary columns.
 single_valued_columns <- sapply(baseline, function(col) length(unique(col)) == 1)
+
 cat("Variables with only one unique value:\n", names(baseline[single_valued_columns]))
 ```
 
@@ -218,12 +223,332 @@ sc_18 and sc_au are 2 mandatory questions have to answer, and the answer have to
 baseline <- baseline %>% select(-sc_18, -sc_au, -addcode)
 ```
 
-## Delete unnecessary rows in baseline
-Delete baseline data for individuals who did not participate in daily questionnaire recordings.
+
+**More cleaning:** Delete baseline data for individuals who did not participate in daily questionnaire recordings.
 ```{r}
 baseline <- baseline[baseline$random_id %in% daily$random_id, ]
-nrow(baseline)
 ```
+
+## Clean Daily
+
+### delete columns
+```{r}
+# Checks each column in the 'raw' data frame to determine if it contains only a single unique value
+single_valued_columns <- sapply(daily, function(col) length(unique(col)) == 1)
+cat("Variables with only one unique value:\n", names(daily[single_valued_columns]))
+```
+
+```{r}
+# Check the variables before deleting.
+
+# daily %>% select(recipient_last_name, recipient_first_name, recipient_email, external_reference, distribution_channel, user_language, q186_8_text, psb15_10_text, psb15_tried_10_text, psb16_10_text, psb16_tried_10_text, osbb7_5_text, osbb10_11_10_text, osbb15_5_text, ssab6_7_10_text, ssid, sms, sig, r_date, time, rt, rid)
+```
+
+```{r}
+daily <- daily %>% 
+  select(-recipient_last_name, -recipient_first_name, -recipient_email, -external_reference, -distribution_channel, -user_language, -q186_8_text, -psb15_10_text, -psb15_tried_10_text, -psb16_10_text, -psb16_tried_10_text, -osbb7_5_text, -osbb10_11_10_text, -osbb15_5_text, -ssab6_7_10_text, -ssid, -sms, -sig, -r_date, -time, -rt, -rid, -response_id) 
+```
+
+### rename
+```{r}
+colnames(daily)
+```
+
+```{r}
+# Renaming columns
+daily <- daily %>% 
+  rename(
+    # Daily Screeners
+    aub1 = au_db1,
+    osb1 = osbb1,
+    ssb1 = ssab1,
+    dub1 = drugs_screen_fu,
+    bpa = bpa1,
+    pub1 = porn_screen_fu,
+    
+    # Alcohol
+    au_t = au_db2,
+    au_v = au_db3,
+    au_l = au_db4,
+    au_loc_txt = au_db4_7_text,
+    au_pbs = au_db5,
+    au_pbs_txt = au_db5_6_text,
+    au_pg = au_db6,
+    au_dg = au_db7,
+    au_bib = au_db8,
+    au_fib = au_db9,
+    au_drg = q186,
+    
+    # Partnered Sexual Behavior 
+    cub1 = psb3,
+    cub2 = psb4,
+    cub3 = psb5,
+    cub4 = psb6,
+    cub5 = psb8,
+    cub6 = psb9,
+    psb3 = psb10,
+    psb4 = psb10_only_one,
+    psb5 = psb11_only_one,
+    psb5a = psb11_tried,
+    psb6 = psb12_only_one,
+    psb6a = psb12_tried,
+    str_p = q211,
+    psb7 = psb13,
+    psb8 = q198_1,
+    psb9 = psb14_only_one_1,
+    psb7a = psb13_tried,
+    psb8a = psb_selfdrunk_tried_1,
+    psb9a = psb14_tried_1,
+    psb10 = psb15,
+    psb10a = psb15_tried,
+    psb11 = psb16,
+    psb11a = psb16_tried,
+    med1_p = pbs17_2,
+    med2_p = pbs17_3,
+    med3_p = pbs17_4,
+    med4_p = pbs17_5,
+    aro_pf = psb18_to_23_1,
+    pls_pf = psb18_to_23_2,
+    con_pf = psb18_to_23_3,
+    ver_pc = q141_1,
+    enon_pc = q141_2,
+    inon_pc = q141_3,
+    prp_v = pbs28_31_1,
+    prp_p = pbs28_31_2,
+    prp_sf = pbs28_31_3,
+    vic_v = psb24_to_27_1,
+    vic_p = psb24_to_27_2,
+    vic_sf = psb24_to_27_3,
+    vic_in = psb24_to_27_4,
+    exp_p = psb32_1,
+    st_p = psb33_1,
+    pa1_p = psb34_1_to_34_5_1,
+    na1_p = psb34_1_to_34_5_2,
+    na2_p = psb34_1_to_34_5_3,
+    na3_p = psb34_1_to_34_5_4,
+    na4_p = psb34_1_to_34_5_5,
+    na5_p = psb34_1_to_34_5_6,
+    pa2_p = psb34_1_to_34_5_7,
+    er1_p = psb34,
+    er2_p = psb35,
+    er3_p = psb36,
+    er4_p = psb37,
+    
+    # Online Sexual Behavior
+    osb2 = osbb2,
+    osb3 = osbb3,
+    osb4 = osbb4,
+    osb5 = osbb5,
+    osb6 = osbb6,
+    osb7 = osbb7,
+    osb8 = osbb8,
+    osb9 = osbb9,
+    osb10 = osbb10_11,
+    aro_of = osbb12_to_13_1,
+    pls_of = osbb12_to_13_2,
+    pss = osbb14,
+    exp_o = osbb16_1,
+    str_o = osbb17_1,
+    pa1_o = osbb18_1_to_5_1,
+    na1_o = osbb18_1_to_5_2,
+    na2_o = osbb18_1_to_5_3,
+    na3_o = osbb18_1_to_5_4,
+    na4_o = osbb18_1_to_5_5,
+    pa2_o = osbb18_1_to_5_6,
+    na5_o = osbb18_1_to_5_7,
+    er1_o = osbb19,
+    er2_o = osbb20,
+    er3_o = osbb21,
+    er4_o = osbb22,
+    
+    # Solo Sexual Behavior
+    ssb2 = ssab2,
+    ssb3 = ssab3,
+    ssb4 = ssab4,
+    ssb5 = ssab5,
+    ssb6 = ssab6_7,
+    aro_sf = ssab8_to_9_1,
+    pls_sf = ssab8_to_9_2,
+    exp_s = ssab10_1,
+    str_s = ssab11_1,
+    pa1_s = ssab12_1_to_5_1,
+    na1_s = ssab12_1_to_5_2,
+    na2_s = ssab12_1_to_5_3,
+    na3_s = ssab12_1_to_5_4,
+    na4_s = ssab12_1_to_5_5,
+    na5_s = ssab12_1_to_5_6,
+    pa2_s = ssab12_1_to_5_7,
+    er1_s = ssab13,
+    er2_s = ssab14,
+    er3_s = ssab15,
+    er4_s = ssab16,
+    
+    # Drug Use Behavior
+    dub2 = q215,
+    dub3_bf = q202,
+    dub3_du = q208,
+    dub3_af = q210,
+    med1_d = q212_1,
+    med2_d = q212_2,
+    med3_d = q212_3,
+    med4_d = q212_4,
+    exp_d = q195,
+    str_d = q196_1,
+    dub4 = q179,
+    dub5 = q180,
+    dub6 = q181,
+    
+    # General Mental Health 
+    imp1 = mis1,
+    imp2 = mis2,
+    imp3 = mis3,
+    imp4 = mis4,
+    dep1 = phq8_1_fu,
+    dep2 = phq8_2_fu,
+    insom = phq8_3_fu,
+    fatig = phq8_4_fu,
+    anx1 = gad_fu_nervous,
+    anx2 = gad_fu_notabletostop,
+    traum1 = b1,
+    traum2 = c2,
+    traum3 = d2,
+    traum4 = e4
+  )
+
+daily <- daily %>% 
+  rename(
+    # Open-text entry
+    dub2_txt = q215_8_text,
+    dub3_bf_txt = q202_36_text,
+    dub3_du_txt = q208_35_text,
+    dub3_af_txt = q210_34_text,
+    str_p_txt = q211_7_text,
+    osb2_txt = osbb2_13_text,
+    prp_in = pbs28_31_4,
+    osb6_txt = osbb6_5_text,
+    ssb3_txt = ssab3_8_text
+  )
+
+names(daily)
+```
+
+### recode
+```{r}
+# Recode screeners for each behavioral category; 1=yes, 0=no, 3=prefer not to say
+daily <- daily %>%   
+  mutate(across(c(aub1:psb1, osb1:ssb1, dub1:bpa, pub1),
+                ~dplyr::recode(., 
+                               "1" = 1,
+                               "2" = 0,
+                               "3" = 3,
+                               .default = NA_real_)))
+# Recode values
+daily <- daily %>%
+  mutate(across(
+    c(au_pg, au_dg, psb3, psb5, psb5a, er1_p, er2_p, 
+      er3_p, er4_p, osb4, osb5, osb8, pss, er1_o, er2_o, 
+      er3_o, er4_o, ssb2, er1_s, er2_s, er3_s, er4_s),
+    ~ case_when(
+      . == "1" ~ 1, # Yes
+      . == "2" ~ 0, # No
+      TRUE ~ as.numeric(.)
+    )
+  ))
+
+# Specific handling for "Not Sure" and "Wasn't Needed"
+daily <- daily %>%
+  mutate(across(
+    c(au_bib, au_fib, cub1, cub2, cub3, cub4, cub5, cub6),
+    ~ case_when(
+      . == "1" ~ 2, # Yes
+      . == "3" ~ 1, # Not Sure
+      . == "2" ~ 0, # No
+      TRUE ~ as.numeric(.)
+    )
+  )) %>%
+  mutate(across(
+    c(cub1, cub2, cub4),
+    ~ case_when(
+      . == "4" ~ 3, # Wasn't Needed
+      TRUE ~ as.numeric(.)
+    )
+  ))
+
+# Recode values
+daily <- daily %>%
+  mutate(across(
+    c(dub5, dub6),
+    ~ case_when(
+      . == "1" ~ 2, # Yes
+      . == "3" ~ 1, # Can't remember (dub5); Maybe (dub6)
+      . == "2" ~ 0, # No
+      TRUE ~ as.numeric(.)
+    )
+  ))
+
+# Check recoding
+daily %>% select(au_pg, au_dg, au_bib, au_fib, cub1, cub2, cub3, cub4, cub5, cub6,
+             psb3, psb5, psb5a, er1_p, er2_p, er3_p, er4_p, osb4, osb5, osb8, pss, er1_o, 
+             er2_o, er3_o, er4_o, ssb2, er1_s, er2_s, er3_s, er4_s, dub5, dub6) %>% map(tabyl)
+
+```
+
+### Dupilicated daily
+Before find out the dupilicated daily, deleted all the survey with 0 progress.
+```{r}
+# deleted all the survey with 0 progress
+daily <- daily %>% 
+  filter(progress != 0)
+```
+
+**Step1**: created new column “id_day”.
+```{r}
+# created new column “id_day”
+daily$id_day <- paste(daily$random_id, daily$day, sep = "_") 
+daily <- daily %>% select(random_id, id_day, recorded_date, everything())
+
+# sorted_data
+daily <- daily %>%
+  group_by(random_id) %>%
+  arrange(recorded_date)
+
+# Find out the duplicated row of same participants recorded survey more than one times.
+duplicate_rows <- daily[duplicated(daily$id_day) | duplicated(daily$id_day, fromLast = TRUE), ]
+
+# sorted_data
+duplicate_rows <- duplicate_rows %>%
+  group_by(random_id) %>%
+  arrange(id_day)
+
+cat("There are", nrow(duplicate_rows), "duplicate rows in daily survey data.")
+```
+
+Delete duplicated rows
+```{r}
+# Selecting on higher value in Progress between duplicated "id_day"
+# Sort the data frame by id_day and progress in descending order
+daily <- daily %>%
+  arrange(id_day, desc(progress))
+
+# Keep only the first occurrence of each id_day with the highest progress
+daily <- daily[!duplicated(daily$id_day), ]
+
+# check again for duplicated rows.
+any(duplicated(daily$id_day))
+```
+
+```{r}
+# Count number of surveys per random_id
+daily_counts <- daily %>%
+  group_by(random_id) %>%
+  summarise(num_surveys = n()) %>% 
+  ungroup()
+
+range(daily_counts$num_surveys)
+```
+
+**NICE!!!** 28 is the Max number of records for one participant.
+
 
 ## Update
 
@@ -233,9 +558,12 @@ nrow(baseline)
 
 3. Deleted 3 columns.
 
-4. Removed duplicated columns in baseline survey.
+4. Removed duplicated columns in baseline survey and daily survey.
 
 5. Matched the ID in Baseline and Daily survey data, and deleted some rows in Baseline data for individuals who did not participate in daily survey recordings.
+
+6. Rename the columns' name and recode the data.
+
 
 ## Save 
 ```{r}

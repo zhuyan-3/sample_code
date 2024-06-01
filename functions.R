@@ -1,15 +1,42 @@
 # This file allows me to source in the many functions I have implemented in EDA, modeling.
 
 ###############################################################################
-# mean_center #################################################################
+# conflicted ##################################################################
 library(conflicted)
 
-# ✖ dplyr::filter() masks stats::filter()
-# ✖ dplyr::lag()    masks stats::lag()
-conflict_prefer("filter", "dplyr")
-conflict_prefer("lag", "dplyr")
-conflict_prefer("chisq.test", "stats")
-conflict_prefer("fisher.test", "stats")
+### %+% 函数：
+# 在psych包中，%+%函数是用于在创建因子分析模型时指定因子的方法之一。
+# 它用于将因子添加到因子分析模型中。
+# 在ggplot2包中，%+%运算符用于将图层添加到绘图中。
+# 例如，你可以使用+运算符在ggplot2中添加图层，例如geom_point()，
+# 而%+%运算符提供了另一种方式来添加图层。
+conflict_prefer("%+%", "ggplot2")
+
+### alpha() 函数：
+# 在psych包中，alpha函数用于计算Cronbach's alpha系数。
+# 这是一种常用的内部一致性测量方法，通常用于评估问卷调查或量表的信度。
+# 在ggplot2包中，alpha函数用于指定图形中元素的透明度。通过调整alpha值，
+# 你可以控制图形中元素的不透明度，使得底层元素透露出来。
+conflict_prefer("alpha", "ggplot2")
+
+### expand() 函数：
+# 在tidyr包中，expand() 函数用于创建包含所有可能组合的新观测值的数据框，
+# 通常用于处理缺失的数据或生成完整的数据框。
+# 在 Matrix 包中，expand() 函数用于将矩阵扩展为普通的向量，按列堆叠成一个向量。
+conflict_prefer("expand", "Matrix")
+
+### pack() 函数：
+# 在tidyr包中，pack() 函数用于将数据框的列转换为单个列表列或将列表列展开为多个列，
+# 通常用于处理嵌套数据。
+# 在 Matrix 包中，并没有名为 pack() 的函数。
+conflict_prefer("pack", "Matrix")
+
+### unpack() 函数：
+# 在tidyr包中，unpack() 函数用于将列表列展开为多个列或将数据框的列转换为单个列表列，
+# 通常用于处理嵌套数据。
+# 在 Matrix 包中，unpack() 函数用于将包含矩阵数据的向量转换回矩阵形式。
+conflict_prefer("unpack", "Matrix")
+
 
 ###############################################################################
 # mean_center #################################################################
@@ -30,11 +57,11 @@ standardize <- function(var) {
 prop_tab <- function(df, var, sort = FALSE) {
   df |>  dplyr::count({{ var }}, sort = sort) |> 
     dplyr::mutate(prop = n / sum(n))
-} 
+}
 
 # provides simple table with counts for cross tab
 # uses janitor::tabyl but included to have two tab functions
-corss_tab <- function(df, var1, var2) {
+prop_tab2 <- function(df, var1, var2) {
   df |>  janitor::tabyl({{ var1 }}, {{ var2 }})
 } 
 

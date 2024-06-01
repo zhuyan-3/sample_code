@@ -11,8 +11,180 @@ format:
 editor_options: 
   chunk_output_type: inline
 ---
+## Introduction
 
+This file is aim to clean the baesline score
+
+**Note:** The data file is from the CSV file which generated from Data Anonymization.Rmd
 ```{r setup, echo=FALSE}
-
+library(tidyverse)
+library(skimr)
+library(psych)
+library(knitr)
+source("/Users/yan/Desktop/sample_code/functions.R")
 ```
+
+## Scores
+### DERS
+**Difficulties in Emotion Regulation Scale:** It is a scale used to assess an individual's difficulty regulating emotions and is commonly used in research and clinical practice in the fields of psychology and mental health. The DERS is typically scored based on respondent responses, with higher scores indicating greater difficulty with emotion regulation.
+
+- ders1:	(Awareness)	I pay attention to how I feel
+- ders2:	(Clarity)	I have no idea how I am feeling
+- ders3:	(Clarity)	I have difficulty making sense out of my feelings
+- ders4:	(Awareness)	I am attentive to my feelings
+- ders5:	(Clarity)	I am confused about how I feel
+- ders6:	(Awareness)	When I am upset, I acknowledge my emotions
+- ders7:	(Nonacceptance)	When I am upset, I become embarrassed for feeling that way
+- ders8:	(Goals)	When I am upset, I have difficulty getting work done. 
+- ders9:	(Impulse)	When I am upset, I become out of control
+- ders10:	(Strategies)	When I am upset, I believe that I will remain that way for a long time
+- ders11:	(Strategies)	When I am upset, I believe that I’ll end up feeling very depressed
+- ders12:	(Goals)	When I am upset, I have difficulty focusing on other things
+- ders13:	(Nonacceptance)	When I am upset, I feel ashamed with myself for feeling that way
+- ders14:	(Nonacceptance)	When I am upset, I feel guilty for feeling that way
+- ders15:	(Goals)	When I am upset, I have difficulty concentrating
+- ders16:	(Impulse)	When I am upset, I have difficulty controlling my behaviors
+- ders17: (Strategies)	When I am upset, I believe that wallowing in it is all I can do
+- ders18:	(Impulse)	When I am upset, I lose control over my behaviors
+
+[Victor, S. E., & Klonsky, E. D. (2016). Validation of a brief version of the difficulties in emotion regulation scale (DERS-18) in five samples. Journal of psychopathology and Behavioral Assessment, 38(4), 582-589.](https://www2.psych.ubc.ca/~klonsky/publications/DERS18.pdf)
+```{r, message=FALSE}
+ders <- read_csv("/Users/yan/Desktop/sample_code/ESM/1_anonymization/anonymous_baseline.csv") %>% 
+  select(random_id, ders1, ders2, ders3, ders4, ders5, ders6, ders7, ders8, ders9, ders10, ders11, ders12, ders13, ders14, ders15, ders16, ders17, ders18)
+
+describe(ders)
+```
+
+```{r}
+# Check Cronbach's alpha
+ders_key = c('ders1', 'ders2', 'ders3', 'ders4', 'ders5', 'ders6', 'ders7', 'ders8', 'ders9', 'ders10', 'ders11', 'ders12', 'ders13', 'ders14', 'ders15', 'ders16', 'ders17', 'ders18')
+
+ders_alpha <- psych::alpha(ders[, ders_key], keys = c('ders1', 'ders4', 'ders6')) # 0.86
+ders_alpha_table <- kable(ders_alpha$alpha, caption = "Cronbach's Alpha for DERS")
+ders_alpha_table 
+```
+
+```{r}
+# Create a DataFrame to save composite scores from different survey.
+baseline <- ders %>% select(random_id)
+
+# Calculate the composite for DERS
+baseline$ders_composite = varScore(ders,
+                  Forward= c('ders2', 'ders3', 'ders5', 'ders7', 
+                             'ders8', 'ders9', 'ders10', 'ders11', 
+                             'ders12', 'ders13', 'ders14', 'ders15', 
+                             'ders16', 'ders17', 'ders18'),
+                  Reverse= c('ders1', 'ders4', 'ders6'),
+                  Range=c(1, 5),
+                  Prorate=T) / 18
+
+baseline$ders_composite <- round(baseline$ders_composite, 2)
+```
+
+```{r}
+ggplot(baseline, aes(x = ders_composite)) +
+  geom_bar(fill = "skyblue", color = "black") +
+  geom_text(stat = "count", aes(label = after_stat(count)), vjust = -0.5) +
+  scale_x_continuous(breaks = seq(min(baseline$ders_composite), max(baseline$ders_composite), by = 1)) +
+  labs(x = "DERS Composite Score",
+       y = "Frequency",
+       title = "Histogram of DERS Composite Score",
+       subtitle = paste("Sample Size:", nrow(baseline))) +
+  theme(plot.subtitle = element_text(size = 10)) +
+  theme_bw()
+```
+
+### PN
+**PEER NETWORK DIVERSITY**
+```{r, message=FALSE}
+pn <- read_csv("/Users/yan/Desktop/sample_code/ESM/1_anonymization/anonymous_baseline.csv") %>% 
+  select(random_id, pn1, pn2, pn3, pn4)
+
+describe(pn)
+```
+
+[Swartout, K. (2013) The company they keep: How peer networks influence male sexual aggression.](https://campusclimate.gsu.edu/files/2017/04/Swartout-2013.pdf)
+
+- pn1: Please think about the friends/peers who you interact with most (either face-to-face, over the phone, or through text messages, email, or social networking sites). Overall, how would you describe the gender composition of your friend group? 
+```{r}
+prop_tab(pn, pn1)
+```
+
+```{r}
+# Change numeric variable to string
+# 1 = Mostly cis-gender male; 2 = Mostly cis-gender female; 3 = Mostly trans, genderqueer, pangender, Two-Spirit, etc.; 4 = A mix of cis-gender male and female; 5 = A mix of all genders (cis-gender male and female, trans, genderqueer, pangender)
+pn$pn1 <- ifelse(pn$pn1 == 1, "Mostly cis-gender male", pn$pn1)
+pn$pn1 <- ifelse(pn$pn1 == 2, "Mostly cis-gender female", pn$pn1)
+pn$pn1 <- ifelse(pn$pn1 == 3, "Mostly trans, genderqueer, pangender", pn$pn1)
+pn$pn1 <- ifelse(pn$pn1 == 4, "A mix of cis-gender male and female", pn$pn1)
+pn$pn1 <- ifelse(pn$pn1 == 5, "A mix of all genders", pn$pn1)
+prop_tab(pn, pn1)
+```
+
+- pn2: For the friends/peers who you interact with most (either face-to-face, over the phone, or through text messages, email, or social networking sites), how would you describe the overall sexual orientation of your friend group?
+```{r}
+prop_tab(pn, pn2)
+```
+
+```{r}
+# 1 = Mostly heterosexual; 2 = Mostly gay or lesbian; 3 = Mostly bisexual, pansexual, etc.; 4 = A mix of all sexual orientations
+pn$pn2 <- ifelse(pn$pn2 == 1, "A mix of all genders", pn$pn2)
+pn$pn2 <- ifelse(pn$pn2 == 2, "Mostly gay or lesbian", pn$pn2)
+pn$pn2 <- ifelse(pn$pn2 == 3, "Mostly bisexual", pn$pn2)
+pn$pn2 <- ifelse(pn$pn2 == 4, "A mix of all sexual orientations", pn$pn2)
+prop_tab(pn, pn2)
+```
+
+- pn3: For the friends/peers who you interact with most (either face-to-face, over the phone, or through text messages, email, or social networking sites), how would you describe the overall racial and ethnic composition of your friend group?
+
+["(Kaczkowski et al., 2017; Cohen et al., 1997) Kaczkowski, W., Brennan, C. L., & Swartout, K. M. (2017). In good company: Social network diversity may protect men against perpetrating sexual violence. Psychology of Violence, 7(2), 276-285. Cohen, S., Doyle, W. J., Skoner, D. P., Rabin, B. S., & Gwaltney, J. M., Jr. (1997). Social ties and susceptibility to the common cold. Journal of the American Medical Association, 277, 1940 –1944. http://dx.doi.org/10.1001/jama.1997.03540480040036"](https://scholarworks.gsu.edu/cgi/viewcontent.cgi?article=1227&context=psych_diss)
+```{r}
+prop_tab(pn, pn3)
+```
+
+```{r}
+# 1 = Mostly White; 2 = Mostly Black; 3 = Mostly Asian; 4 = Mostly Native American/American Indian/Alaska Native; 5 = Mostly Hispanic; 6 = Mostly Hawaiian/Pacific Islander; 7 = A mix of races and ethnicities
+pn$pn3 <- ifelse(pn$pn3 == 1, "Mostly White", pn$pn3)
+pn$pn3 <- ifelse(pn$pn3 == 2, "Mostly Black", pn$pn3)
+pn$pn3 <- ifelse(pn$pn3 == 3, "Mostly Asian", pn$pn3)
+pn$pn3 <- ifelse(pn$pn3 == 5, "Mostly Hispanic", pn$pn3)
+pn$pn3 <- ifelse(pn$pn3 == 7, "A mix of races", pn$pn3)
+prop_tab(pn, pn3)
+```
+
+- pn4: How many different social groups do you interact with on a monthly basis? Please select from the dropdown menu below. (A social group might be a set of friends, a club, a fraternity, an athletic team, etc, and an interaction might be hanging out, texting, use of social media networking sites, etc.)
+
+[Burgess, G. H. (2007). Assessment of rape-supportive attitudes and beliefs in college men: Development, reliability, and validity of the rape attitudes and beliefs scale. Journal of interpersonal violence, 22(8), 973-993.](https://psycnet.apa.org/record/2007-12184-002)
+```{r}
+prop_tab(pn, pn4)
+```
+
+```{r}
+baseline <- merge(baseline, pn, by = "random_id")
+```
+
+
+```{r, message=FALSE}
+pa <- read_csv("/Users/yan/Desktop/sample_code/ESM/1_anonymization/anonymous_baseline.csv") %>% 
+  select(random_id, pa1, pa2, pa3, pa4, pa5, pa6)
+
+describe(pa) # checking on statistic descriptive data
+any(is.na(pa)) #checking any missing data
+```
+
+```{r}
+baseline <- merge(baseline, pa, by = "random_id")
+```
+
+
+
+
+## Write CSV
+```{r}
+write.csv(baseline, "/Users/yan/Desktop/sample_code/ESM/3_baseline_scores/baseline_data.csv", row.names = FALSE)
+```
+
+
+
+
 

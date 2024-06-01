@@ -1,0 +1,134 @@
+---
+title: "Partnered Sexual Behavior"
+author: "Yan Zhu"
+date: "`r lubridate::today()`"
+format: 
+  html:
+    timeout: 180
+    embed-resources: true
+    toc: true 
+    toc_depth: 4
+editor_options: 
+  chunk_output_type: inline
+---
+## Introduction
+
+Check out the the survey about Partnered Sexual Behavior.
+
+These survey were answered because participants answered **YES** in Question: *Since the last survey, have you hooked up, engaged in any sexual activity, or tried to engage in any sexual activity with another person (including flirting, kissing, touching, or intercourse)?*
+
+Aims of this Script:
+
+1. Check and understanding this dataset.
+
+2. Clean it.
+
+
+## Set Up
+```{r setup, echo=TRUE, message=FALSE}
+library(tidyverse)
+library(janitor)
+library(skimr)
+library(psych)
+library(knitr)
+source("/Users/yan/Desktop/sample_code/functions.R")
+```
+
+Read data
+```{r read data, message=FALSE}
+daily <- read_csv("/Users/yan/Desktop/sample_code/ESM/1_anonymization/anonymous_daily.csv") %>% clean_names()
+```
+
+```{r}
+psb1 <- daily %>%
+  filter(psb1 == 1) %>%
+  select(random_id, start_date, end_date, finished, psb2, cub1, cub2, cub3, cub4, cub5, cub6, psb3, psb4, psb5, psb5a, psb6, psb6a, str_p, str_p_txt, psb7, psb8, psb9, psb7a, psb8a, psb9a, psb10, psb10a, psb11, psb11a, med1_p, med2_p, med3_p, med4_p, aro_pf, pls_pf, con_pf, ver_pc, enon_pc, inon_pc, prp_v, prp_p, prp_sf, prp_in, vic_v, vic_p, vic_sf, vic_in, exp_p, st_p, pa1_p, na1_p, na2_p, na3_p, na4_p, na5_p, pa2_p, er1_p, er2_p, er3_p, er4_p) %>%
+  glimpse()
+```
+
+**Question:** How many Partnered Sexual Behavior survey were recorded? (finished?)
+```{r}
+cat("We have", nrow(psb1), "records.")
+```
+
+```{r}
+finished <- psb1[psb1$finished == 1, ]
+unfinished <- psb1[psb1$finished == 0, ]
+
+cat("There are", nrow(finished), "records; and", nrow(unfinished), "unfinished records.")
+```
+
+Let's remove column contains only a single unique value.
+```{r}
+# Checks each column to determine if it contains only a single unique value
+single_valued_columns <- sapply(finished, function(col) length(unique(col)) == 1)
+cat("Variables with only one unique value:\n", names(finished[single_valued_columns]))
+```
+
+```{r}
+glimpse(finished$str_p_txt)
+```
+
+```{r}
+# All NA is not helpful, so remove this column.
+finished <- finished %>% select(-str_p_txt)
+```
+
+## Emotion Regulation
+I will focuse on participant with Emotion Regulation scores.
+```{r}
+# remove the rows without Emotion Regulation score.
+finished <- finished[!is.na(finished$er1_p) & !is.na(finished$er1_p) & !is.na(finished$er1_p) &  !is.na(finished$er1_p), ]
+
+cat("We have", nrow(finished), "records now.")
+```
+
+er1_p: "Thinking about your strongest emotion, how did you respond to the feeling?  I tried to get rid of negative thoughts, feelings, or sensations"
+
+- This could be seen as a form of emotional suppression, which is often considered maladaptive. So, if "yes" means the respondent engaged in this behavior, it does not require reverse coding.
+
+er2_p: "Thinking about your strongest emotion, how did you respond to the feeling?  I couldn’t stop thinking about my feelings"
+
+- This indicates rumination, which is also considered maladaptive. A "yes" response here should also not be reverse-coded.
+
+er3_p: "Thinking about your strongest emotion, how did you respond to the feeling?  I avoided expressing my feelings"
+
+- Avoidance of expressing feelings is another maladaptive strategy. A "yes" response here would not need reverse coding.
+
+er4_p: "Thinking about your strongest emotion, how did you respond to the feeling?  I changed the way I thought about what caused my feelings"
+
+- This is potentially an adaptive strategy, often related to cognitive reappraisal. If "yes" indicates a positive, adaptive behavior, this item require reverse coding to align with the others, where "yes" indicates a negative behavior.
+
+```{r}
+# Get the total score of emotion regulation.
+finished$er_sum <- finished$er1_p + finished$er2_p + finished$er3_p - finished$er4_p
+prop_tab(finished, er_sum)
+```
+
+
+```{r}
+er_p <- finished %>% select(random_id, start_date, er1_p, er2_p, er3_p, er4_p, er_sum)
+```
+
+```{r}
+er_p$start_date <- as.Date(er_p$start_date)
+
+id_counts <- er_p %>%
+  count(random_id, name = "count")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,246 @@
+---
+title: "Daily Overview"
+author: "Yan Zhu"
+date: "`r lubridate::today()`"
+format: 
+  html:
+    timeout: 180
+    embed-resources: true
+    toc: true 
+    toc_depth: 4
+editor_options: 
+  chunk_output_type: inline
+---
+## Introduction
+
+1. Understand the structure of the daily data.
+
+2. Divide the different question sets.
+
+3. Analysis all of 7 question sets.
+
+## Set Up
+```{r setup, echo=TRUE, message=FALSE}
+# options(conflicts.policy = "depends.ok") 
+source("/Users/yan/Desktop/sample_code/functions.R")
+
+library(tidyverse)
+library(janitor)
+library(skimr)
+library(psych)
+library(knitr)
+library(ggplot2)
+```
+
+```{r, warning=FALSE}
+daily <- read_csv("/Users/yan/Desktop/sample_code/ESM/1_anonymization/anonymous_daily.csv") %>% clean_names()
+```
+
+## General Information
+```{r}
+cat("We have", nrow(daily), "survey records, and there are", length(unique(daily$random_id)), "participants.")
+```
+
+**Question:** How many survey records for each participant.
+```{r}
+# count number of survey for each participants.
+each_id <- daily %>%
+  group_by(random_id) %>%
+  summarize(num_survey = n())
+
+# Histogram
+ggplot(each_id, aes(x = num_survey)) +
+  geom_bar(fill = "skyblue", color = "black") +
+  geom_text(stat = "count", aes(label = after_stat(count)), vjust = -0.5) +
+  scale_x_continuous(breaks = seq(min(each_id$num_survey), max(each_id$num_survey), by = 1)) +
+  labs(x = "Number of Survey",
+       y = "Frequency",
+       title = "Histogram of Survey Count",
+       subtitle = paste("Sample Size:", nrow(each_id))) +
+  theme(plot.subtitle = element_text(size = 10)) +
+  theme_bw()
+```
+
+**Question: Alcohol use ** 
+
+Since the last survey, have you had 1 or more alcoholic drinks? A standard drink is a 12 oz beer, a 8-9 oz of malt liquor, a 5 oz glass of wine, or a 1.5 ounce shot
+```{r}
+prop_tab(daily, aub1) # Yes = 1, No = 0, Prefer not to respond = 3
+```
+
+
+
+**Question: Partnered sexual behavior** 
+
+Since the last survey, have you hooked up, engaged in any sexual activity, or tried to engage in any sexual activity with another person (including flirting, kissing, touching, or intercourse)?
+```{r}
+prop_tab(daily, psb1) # Yes = 1, No = 0, Prefer not to respond = 3
+```
+
+**Question: Online sexual behavior** 
+
+Since the last survey, have you used any websites, dating apps, or social platforms to look for sexual imagery, partners, or content?
+```{r}
+prop_tab(daily, osb1) # Yes = 1, No = 0, Prefer not to respond = 3
+```
+
+
+**Question: Solo sexual activity** 
+
+Since the last survey, have you engaged in any solo sexual activity (i.e., masturbation)?
+```{r}
+prop_tab(daily, ssb1) # Yes = 1, No = 0, Prefer not to respond = 3
+```
+
+**Question: Drug use** 
+
+Since the last survey, have you used any recreational drugs (e.g., marijuana, cocaine) or prescription medications?
+```{r}
+prop_tab(daily, dub1) # Yes = 1, No = 0, Prefer not to respond = 3
+```
+
+```{r}
+daily[is.na(daily$dub1), ]
+```
+
+*There are NA because they had said "No" or "Prefer not to respond" to most of the questions above but skipped "bpa" (bar and party attendance) because they thought it was "Not applicable" to them (i.e., I did not drink, so I do not need to answer this question about where people drink).*
+
+**Question: Drinking contexts**
+
+Since the last survey, have you been to a bar, club, or party?
+```{r}
+prop_tab(daily, bpa) # Yes = 1, No = 0, Prefer not to respond = 3
+```
+
+*There are NA because they had said "No" or "Prefer not to respond" to most of the questions above.*
+
+**Question: Pornography**
+
+Since the last survey, have you viewed any pornographic material?
+```{r}
+prop_tab(daily, pub1) # Yes = 1, No = 0, Prefer not to respond = 3
+```
+
+
+## General Mental Health Block
+Let's check the proportion of answered General Mental Health Block
+```{r}
+# Define the list of columns
+general_mh_list <- c("imp1", "imp2", "imp3", "imp4",
+                     "dep1", "dep2", "insom", "fatig", 
+                     "anx1", "anx2", 
+                     "traum1", "traum2", "traum3", "traum4")
+
+# Create the new column "general_mh"
+daily <- daily %>%
+  mutate(general_mh = if_else(rowSums(!is.na(select(., all_of(general_mh_list)))) > 0, 1, 0))
+
+prop_tab(daily, general_mh)
+```
+
+```{r}
+# Count number of different type of survey were taken for each participant.
+
+# Create a new data frame to store the counts for each random_id
+type_counts <- daily %>%
+  group_by(random_id) %>%
+  summarize(
+    aub1_count = sum(aub1 == 1),
+    psb1_count = sum(psb1 == 1),
+    osb1_count = sum(osb1 == 1),
+    ssb1_count = sum(ssb1 == 1),
+    dub1_count = sum(dub1 == 1),
+    bpa_count = sum(bpa == 1),
+    pub1_count = sum(pub1 == 1),
+    general_mh_count = sum(general_mh == 1)
+  )
+
+glimpse(type_counts)
+```
+
+```{r}
+# Merge data frame
+id_counts <- merge(id_counts, type_counts, by = "random_id", all.x = TRUE)
+
+# then I can delete type_counts to make my work place clean.
+rm(type_counts)
+```
+
+### Sum Scores MH
+```{r}
+# Very slightly or not at all = 1; A little = 2; Moderately = 3; Quite a bit = 4; Extremely = 5
+daily$imp_sum <- daily$imp1 + daily$imp2 + daily$imp3 + daily$imp4
+
+# 0 = Not at all; 1 = Somewhat; 2 = Quite a bit; 3 = Entirely
+daily$dep_sum <- daily$dep1 + daily$dep2
+
+# 0 = Not at all; 1 = Somewhat; 2 = Quite a bit; 3 = Entirely
+daily$anx_sum <- daily$anx1 + daily$anx2
+
+# 0 = Not at all; 1 = A little bit; 2 = Moderately; 3 = Quite a bit; 4 = Extremely; 5 = Not applicable--I have never had a very stressful or traumatic experience
+daily$traum_sum <- daily$traum1 + daily$traum2 + daily$traum3 + daily$traum4
+```
+
+
+## 28 Surveys
+Let's focus on participant with fully 28 General Mental Health Block survey.
+```{r}
+survey_28 <- id_counts[id_counts$general_mh_count == 28, ]
+
+survey_28 <- daily[daily$random_id %in% survey_28$random_id, ]
+
+survey_28 <- survey_28 %>% 
+  select(random_id, day, imp_sum, dep_sum, insom, fatig, anx_sum, traum_sum)
+
+head(survey_28, 6)
+```
+
+```{r}
+prop_tab(survey_28, imp_sum)
+```
+
+
+```{r}
+survey_28_imp <- survey_28 %>% 
+  select(random_id, imp_sum, day) %>%
+  mutate(day = as.integer(day))
+
+# Verify the structure of survey_28_imp
+glimpse(survey_28_imp)
+
+# Create the line plots for each person with fixed y-axis scales
+ggplot(survey_28_imp, aes(x = day, y = imp_sum, group = random_id)) +
+  geom_line() +
+  labs(x = "Day", y = "IMP Sum", color = "Random ID") +
+  theme_minimal() +
+  facet_wrap(~ random_id, scales = "fixed") +  # Change scales to "fixed"
+  ggtitle("Score Changes for Each Person")
+```
+
+```{r}
+average_scores <- survey_28_imp %>%
+  group_by(random_id) %>%
+  summarise(avg_imp_sum = mean(imp_sum))
+
+average_scores <- left_join(average_scores, id_counts, by = "random_id")
+
+average_scores$dub1_count <- ifelse(is.na(average_scores$dub1_count), 0, average_scores$dub1_count)
+# average_scores$dub1_count[is.na(average_scores$dub1_count)] <- 0
+
+any(is.na(average_scores))
+```
+
+```{r}
+# aub1_count * psb1_count * osb1_count * ssb1_count * dub1_count * bpa_count * pub1_count, average_scores
+m <- step(lm(avg_imp_sum ~ aub1_count * psb1_count *pub1_count, average_scores))
+summary(m)
+```
+
+
+
+
+
+
+
+
+
