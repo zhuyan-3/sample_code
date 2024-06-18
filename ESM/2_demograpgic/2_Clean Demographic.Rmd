@@ -34,10 +34,10 @@ source("/Users/yan/Desktop/sample_code/functions.R")
 # dis2, dis_inj, dis_combined, dis_mult, rel, smu (In old code book, but not in the data)
 # ADD! I will create a new Code Book which could be found in repo/sample_code
 
-demog <- read_csv("/Users/yan/Desktop/sample_code/ESM/1_anonymization/anonymous_baseline.csv") %>% 
+demog <- read_csv("/Users/yan/Desktop/sample_code/ESM/1_anonymization/anonymous_baseline.csv", show_col_types = FALSE) %>% 
   select(random_id, age, res, sch_yr, race, mult, race_txt, eth, dis1, dis_dev,
          dis_lrn, dis_sen, dis_mob, dis_psy, dis_unl, dis_txt, dis_ill,dis_dev,
-         gend, trans, sx_ori,, dem12, f_aid, p_grnt, job, f_need, fgen) %>% glimpse(show_col_types = FALSE)
+         gend, trans, sx_ori,, dem12, f_aid, p_grnt, job, f_need, fgen) %>% glimpse()
 ```
 
 ## Variable Check

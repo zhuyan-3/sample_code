@@ -2,12 +2,12 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.4.553">
+<meta name="generator" content="quarto-1.4.555">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Yan Zhu">
-<meta name="dcterms.date" content="2024-05-29">
+<meta name="dcterms.date" content="2024-06-10">
 
 <title>Initial Cleaning and Data Anonymization</title>
 <style>
@@ -3118,7 +3118,7 @@ vertical-align: -.125em;
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">May 29, 2024</p>
+      <p class="date">June 10, 2024</p>
     </div>
   </div>
   
@@ -3149,18 +3149,20 @@ vertical-align: -.125em;
 <section id="setup" class="level2">
 <h2 class="anchored" data-anchor-id="setup">Setup</h2>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dplyr)</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(skimr)</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(janitor)</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(readxl)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">source</span>(<span class="st">&quot;/Users/yan/Desktop/sample_code/functions.R&quot;</span>)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dplyr)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(skimr)</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(janitor)</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(readxl)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>baseline <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">&quot;/Users/yan/Desktop/sample_code/ESM/0_raw data/esm_bline_feb29.csv&quot;</span>) <span class="sc">%&gt;%</span></span>
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>baseline <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">&quot;/Users/yan/Desktop/sample_code/ESM/0_raw data/esm_bline_feb29.csv&quot;</span>, <span class="at">show_col_types =</span> <span class="cn">FALSE</span>) <span class="sc">%&gt;%</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>( <span class="sc">-</span>new_random_id) <span class="sc">%&gt;%</span> </span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">clean_names</span>()</span>
 <span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>daily <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">&quot;/Users/yan/Desktop/sample_code/ESM/0_raw data/esm_diary_raw_data.csv&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>daily <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">&quot;/Users/yan/Desktop/sample_code/ESM/0_raw data/esm_diary_raw_data.csv&quot;</span>, <span class="at">show_col_types =</span> <span class="cn">FALSE</span>) <span class="sc">%&gt;%</span></span>
 <span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">clean_names</span>()</span>
 <span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>daily <span class="ot">&lt;-</span> daily[<span class="sc">-</span><span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">2</span>), ]</span>
 <span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a></span>
@@ -3358,41 +3360,40 @@ FALSE
 <p>Next, I would like to do a little cleaning in Baseline data.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Removing some unnecessary columns.</span></span>
-<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>single_valued_columns <span class="ot">&lt;-</span> <span class="fu">sapply</span>(baseline, <span class="cf">function</span>(col) <span class="fu">length</span>(<span class="fu">unique</span>(col)) <span class="sc">==</span> <span class="dv">1</span>)</span>
-<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Variables with only one unique value:</span><span class="sc">\n</span><span class="st">&quot;</span>, <span class="fu">names</span>(baseline[single_valued_columns]))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a><span class="fu">find_single_valued_columns</span>(baseline)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Variables with only one unique value:
- consent sc_18 sc_au addcode</code></pre>
+<pre><code>Single-valued columns:
+[1] &quot;consent&quot; &quot;sc_18&quot;   &quot;sc_au&quot;   &quot;addcode&quot;</code></pre>
 </div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a>baseline <span class="sc">%&gt;%</span> <span class="fu">select</span>(sc_18, sc_au, addcode) <span class="sc">%&gt;%</span> <span class="fu">head</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a>baseline <span class="sc">%&gt;%</span> <span class="fu">select</span>(consent, sc_18, sc_au, addcode) <span class="sc">%&gt;%</span> <span class="fu">head</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>Adding missing grouping variables: `random_id`</code></pre>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code># A tibble: 6 × 4
+<pre><code># A tibble: 6 × 5
 # Groups:   random_id [6]
-  random_id sc_18 sc_au addcode
-      &lt;int&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;lgl&gt;  
-1    844745     1     1 NA     
-2    473480     1     1 NA     
-3    424195     1     1 NA     
-4    244226     1     1 NA     
-5    130598     1     1 NA     
-6    761904     1     1 NA     </code></pre>
+  random_id consent sc_18 sc_au addcode
+      &lt;int&gt;   &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;lgl&gt;  
+1    844745       1     1     1 NA     
+2    473480       1     1     1 NA     
+3    424195       1     1     1 NA     
+4    244226       1     1     1 NA     
+5    130598       1     1     1 NA     
+6    761904       1     1     1 NA     </code></pre>
 </div>
 </div>
 <p>Deleting list below:</p>
 <ul>
+<li>consent: 1 = Yes (Agree to continue with the survey.)</li>
 <li>sc_18: 1 = Yes (Are you at least 18 years old?)</li>
 <li>sc_au: 1 = Yes (Have you consumed any alcohol in the last 12 months?)</li>
 <li>addcode: All missing data, not helpful.</li>
 </ul>
 <p>sc_18 and sc_au are 2 mandatory questions have to answer, and the answer have to be 1 to continue the survey.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a>baseline <span class="ot">&lt;-</span> baseline <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="sc">-</span>sc_18, <span class="sc">-</span>sc_au, <span class="sc">-</span>addcode)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a>baseline <span class="ot">&lt;-</span> baseline <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="sc">-</span>consent, <span class="sc">-</span>sc_18, <span class="sc">-</span>sc_au, <span class="sc">-</span>addcode)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p><strong>More cleaning:</strong> Delete baseline data for individuals who did not participate in daily questionnaire recordings.</p>
 <div class="cell">
@@ -3404,12 +3405,18 @@ FALSE
 <section id="delete-columns" class="level3">
 <h3 class="anchored" data-anchor-id="delete-columns">delete columns</h3>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb46"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Checks each column in the &#39;raw&#39; data frame to determine if it contains only a single unique value</span></span>
-<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a>single_valued_columns <span class="ot">&lt;-</span> <span class="fu">sapply</span>(daily, <span class="cf">function</span>(col) <span class="fu">length</span>(<span class="fu">unique</span>(col)) <span class="sc">==</span> <span class="dv">1</span>)</span>
-<span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Variables with only one unique value:</span><span class="sc">\n</span><span class="st">&quot;</span>, <span class="fu">names</span>(daily[single_valued_columns]))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb46"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="co"># find out columns with only one unique value</span></span>
+<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a><span class="fu">find_single_valued_columns</span>(daily)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Variables with only one unique value:
- recipient_last_name recipient_first_name recipient_email external_reference distribution_channel user_language q186_8_text psb15_10_text psb15_tried_10_text psb16_10_text psb16_tried_10_text osbb7_5_text osbb10_11_10_text osbb15_5_text ssab6_7_10_text ssid sms sig r_date time rt rid</code></pre>
+<pre><code>Single-valued columns:
+ [1] &quot;recipient_last_name&quot;  &quot;recipient_first_name&quot; &quot;recipient_email&quot;     
+ [4] &quot;external_reference&quot;   &quot;distribution_channel&quot; &quot;user_language&quot;       
+ [7] &quot;q186_8_text&quot;          &quot;psb15_10_text&quot;        &quot;psb15_tried_10_text&quot; 
+[10] &quot;psb16_10_text&quot;        &quot;psb16_tried_10_text&quot;  &quot;osbb7_5_text&quot;        
+[13] &quot;osbb10_11_10_text&quot;    &quot;osbb15_5_text&quot;        &quot;ssab6_7_10_text&quot;     
+[16] &quot;ssid&quot;                 &quot;sms&quot;                  &quot;sig&quot;                 
+[19] &quot;r_date&quot;               &quot;time&quot;                 &quot;rt&quot;                  
+[22] &quot;rid&quot;                 </code></pre>
 </div>
 </div>
 <div class="cell">
@@ -3418,8 +3425,9 @@ FALSE
 <span id="cb48-3"><a href="#cb48-3" aria-hidden="true" tabindex="-1"></a><span class="co"># daily %&gt;% select(recipient_last_name, recipient_first_name, recipient_email, external_reference, distribution_channel, user_language, q186_8_text, psb15_10_text, psb15_tried_10_text, psb16_10_text, psb16_tried_10_text, osbb7_5_text, osbb10_11_10_text, osbb15_5_text, ssab6_7_10_text, ssid, sms, sig, r_date, time, rt, rid)</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb49"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a>daily <span class="ot">&lt;-</span> daily <span class="sc">%&gt;%</span> </span>
-<span id="cb49-2"><a href="#cb49-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span>recipient_last_name, <span class="sc">-</span>recipient_first_name, <span class="sc">-</span>recipient_email, <span class="sc">-</span>external_reference, <span class="sc">-</span>distribution_channel, <span class="sc">-</span>user_language, <span class="sc">-</span>q186_8_text, <span class="sc">-</span>psb15_10_text, <span class="sc">-</span>psb15_tried_10_text, <span class="sc">-</span>psb16_10_text, <span class="sc">-</span>psb16_tried_10_text, <span class="sc">-</span>osbb7_5_text, <span class="sc">-</span>osbb10_11_10_text, <span class="sc">-</span>osbb15_5_text, <span class="sc">-</span>ssab6_7_10_text, <span class="sc">-</span>ssid, <span class="sc">-</span>sms, <span class="sc">-</span>sig, <span class="sc">-</span>r_date, <span class="sc">-</span>time, <span class="sc">-</span>rt, <span class="sc">-</span>rid, <span class="sc">-</span>response_id) </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb49"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a><span class="co"># delete columns with only one unique value</span></span>
+<span id="cb49-2"><a href="#cb49-2" aria-hidden="true" tabindex="-1"></a>daily <span class="ot">&lt;-</span> daily <span class="sc">%&gt;%</span> </span>
+<span id="cb49-3"><a href="#cb49-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span>recipient_last_name, <span class="sc">-</span>recipient_first_name, <span class="sc">-</span>recipient_email, <span class="sc">-</span>external_reference, <span class="sc">-</span>distribution_channel, <span class="sc">-</span>user_language, <span class="sc">-</span>q186_8_text, <span class="sc">-</span>psb15_10_text, <span class="sc">-</span>psb15_tried_10_text, <span class="sc">-</span>psb16_10_text, <span class="sc">-</span>psb16_tried_10_text, <span class="sc">-</span>osbb7_5_text, <span class="sc">-</span>osbb10_11_10_text, <span class="sc">-</span>osbb15_5_text, <span class="sc">-</span>ssab6_7_10_text, <span class="sc">-</span>ssid, <span class="sc">-</span>sms, <span class="sc">-</span>sig, <span class="sc">-</span>r_date, <span class="sc">-</span>time, <span class="sc">-</span>rt, <span class="sc">-</span>rid, <span class="sc">-</span>response_id) </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="rename" class="level3">
@@ -3745,41 +3753,60 @@ FALSE
 <span id="cb54-19"><a href="#cb54-19" aria-hidden="true" tabindex="-1"></a>    )</span>
 <span id="cb54-20"><a href="#cb54-20" aria-hidden="true" tabindex="-1"></a>  ))</span>
 <span id="cb54-21"><a href="#cb54-21" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb54-22"><a href="#cb54-22" aria-hidden="true" tabindex="-1"></a><span class="co"># Specific handling for &quot;Not Sure&quot; and &quot;Wasn&#39;t Needed&quot;</span></span>
+<span id="cb54-22"><a href="#cb54-22" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb54-23"><a href="#cb54-23" aria-hidden="true" tabindex="-1"></a>daily <span class="ot">&lt;-</span> daily <span class="sc">%&gt;%</span></span>
 <span id="cb54-24"><a href="#cb54-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="fu">across</span>(</span>
-<span id="cb54-25"><a href="#cb54-25" aria-hidden="true" tabindex="-1"></a>    <span class="fu">c</span>(au_bib, au_fib, cub1, cub2, cub3, cub4, cub5, cub6),</span>
-<span id="cb54-26"><a href="#cb54-26" aria-hidden="true" tabindex="-1"></a>    <span class="sc">~</span> <span class="fu">case_when</span>(</span>
-<span id="cb54-27"><a href="#cb54-27" aria-hidden="true" tabindex="-1"></a>      . <span class="sc">==</span> <span class="st">&quot;1&quot;</span> <span class="sc">~</span> <span class="dv">2</span>, <span class="co"># Yes</span></span>
-<span id="cb54-28"><a href="#cb54-28" aria-hidden="true" tabindex="-1"></a>      . <span class="sc">==</span> <span class="st">&quot;3&quot;</span> <span class="sc">~</span> <span class="dv">1</span>, <span class="co"># Not Sure</span></span>
-<span id="cb54-29"><a href="#cb54-29" aria-hidden="true" tabindex="-1"></a>      . <span class="sc">==</span> <span class="st">&quot;2&quot;</span> <span class="sc">~</span> <span class="dv">0</span>, <span class="co"># No</span></span>
-<span id="cb54-30"><a href="#cb54-30" aria-hidden="true" tabindex="-1"></a>      <span class="cn">TRUE</span> <span class="sc">~</span> <span class="fu">as.numeric</span>(.)</span>
-<span id="cb54-31"><a href="#cb54-31" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb54-32"><a href="#cb54-32" aria-hidden="true" tabindex="-1"></a>  )) <span class="sc">%&gt;%</span></span>
-<span id="cb54-33"><a href="#cb54-33" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="fu">across</span>(</span>
-<span id="cb54-34"><a href="#cb54-34" aria-hidden="true" tabindex="-1"></a>    <span class="fu">c</span>(cub1, cub2, cub4),</span>
-<span id="cb54-35"><a href="#cb54-35" aria-hidden="true" tabindex="-1"></a>    <span class="sc">~</span> <span class="fu">case_when</span>(</span>
-<span id="cb54-36"><a href="#cb54-36" aria-hidden="true" tabindex="-1"></a>      . <span class="sc">==</span> <span class="st">&quot;4&quot;</span> <span class="sc">~</span> <span class="dv">3</span>, <span class="co"># Wasn&#39;t Needed</span></span>
-<span id="cb54-37"><a href="#cb54-37" aria-hidden="true" tabindex="-1"></a>      <span class="cn">TRUE</span> <span class="sc">~</span> <span class="fu">as.numeric</span>(.)</span>
-<span id="cb54-38"><a href="#cb54-38" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb54-39"><a href="#cb54-39" aria-hidden="true" tabindex="-1"></a>  ))</span>
-<span id="cb54-40"><a href="#cb54-40" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb54-41"><a href="#cb54-41" aria-hidden="true" tabindex="-1"></a><span class="co"># Recode values</span></span>
-<span id="cb54-42"><a href="#cb54-42" aria-hidden="true" tabindex="-1"></a>daily <span class="ot">&lt;-</span> daily <span class="sc">%&gt;%</span></span>
-<span id="cb54-43"><a href="#cb54-43" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="fu">across</span>(</span>
-<span id="cb54-44"><a href="#cb54-44" aria-hidden="true" tabindex="-1"></a>    <span class="fu">c</span>(dub5, dub6),</span>
-<span id="cb54-45"><a href="#cb54-45" aria-hidden="true" tabindex="-1"></a>    <span class="sc">~</span> <span class="fu">case_when</span>(</span>
-<span id="cb54-46"><a href="#cb54-46" aria-hidden="true" tabindex="-1"></a>      . <span class="sc">==</span> <span class="st">&quot;1&quot;</span> <span class="sc">~</span> <span class="dv">2</span>, <span class="co"># Yes</span></span>
-<span id="cb54-47"><a href="#cb54-47" aria-hidden="true" tabindex="-1"></a>      . <span class="sc">==</span> <span class="st">&quot;3&quot;</span> <span class="sc">~</span> <span class="dv">1</span>, <span class="co"># Can&#39;t remember (dub5); Maybe (dub6)</span></span>
-<span id="cb54-48"><a href="#cb54-48" aria-hidden="true" tabindex="-1"></a>      . <span class="sc">==</span> <span class="st">&quot;2&quot;</span> <span class="sc">~</span> <span class="dv">0</span>, <span class="co"># No</span></span>
-<span id="cb54-49"><a href="#cb54-49" aria-hidden="true" tabindex="-1"></a>      <span class="cn">TRUE</span> <span class="sc">~</span> <span class="fu">as.numeric</span>(.)</span>
-<span id="cb54-50"><a href="#cb54-50" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb54-51"><a href="#cb54-51" aria-hidden="true" tabindex="-1"></a>  ))</span>
-<span id="cb54-52"><a href="#cb54-52" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb54-53"><a href="#cb54-53" aria-hidden="true" tabindex="-1"></a><span class="co"># Check recoding</span></span>
-<span id="cb54-54"><a href="#cb54-54" aria-hidden="true" tabindex="-1"></a>daily <span class="sc">%&gt;%</span> <span class="fu">select</span>(au_pg, au_dg, au_bib, au_fib, cub1, cub2, cub3, cub4, cub5, cub6,</span>
-<span id="cb54-55"><a href="#cb54-55" aria-hidden="true" tabindex="-1"></a>             psb3, psb5, psb5a, er1_p, er2_p, er3_p, er4_p, osb4, osb5, osb8, pss, er1_o, </span>
-<span id="cb54-56"><a href="#cb54-56" aria-hidden="true" tabindex="-1"></a>             er2_o, er3_o, er4_o, ssb2, er1_s, er2_s, er3_s, er4_s, dub5, dub6) <span class="sc">%&gt;%</span> <span class="fu">map</span>(tabyl)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb54-25"><a href="#cb54-25" aria-hidden="true" tabindex="-1"></a>    <span class="fu">c</span>(na1_s, na2_s, na3_s, na4_s, na5_s,</span>
+<span id="cb54-26"><a href="#cb54-26" aria-hidden="true" tabindex="-1"></a>      na1_o, na2_o, na3_o, na4_o, na5_o,</span>
+<span id="cb54-27"><a href="#cb54-27" aria-hidden="true" tabindex="-1"></a>      pa1_s, pa2_s, pa1_o, pa2_o),</span>
+<span id="cb54-28"><a href="#cb54-28" aria-hidden="true" tabindex="-1"></a>    <span class="sc">~</span> <span class="fu">case_when</span>(</span>
+<span id="cb54-29"><a href="#cb54-29" aria-hidden="true" tabindex="-1"></a>      . <span class="sc">==</span> <span class="st">&quot;1&quot;</span> <span class="sc">~</span> <span class="dv">0</span>, </span>
+<span id="cb54-30"><a href="#cb54-30" aria-hidden="true" tabindex="-1"></a>      . <span class="sc">==</span> <span class="st">&quot;2&quot;</span> <span class="sc">~</span> <span class="dv">1</span>, </span>
+<span id="cb54-31"><a href="#cb54-31" aria-hidden="true" tabindex="-1"></a>      . <span class="sc">==</span> <span class="st">&quot;3&quot;</span> <span class="sc">~</span> <span class="dv">2</span>,</span>
+<span id="cb54-32"><a href="#cb54-32" aria-hidden="true" tabindex="-1"></a>      . <span class="sc">==</span> <span class="st">&quot;4&quot;</span> <span class="sc">~</span> <span class="dv">3</span>,</span>
+<span id="cb54-33"><a href="#cb54-33" aria-hidden="true" tabindex="-1"></a>      . <span class="sc">==</span> <span class="st">&quot;5&quot;</span> <span class="sc">~</span> <span class="dv">4</span>,</span>
+<span id="cb54-34"><a href="#cb54-34" aria-hidden="true" tabindex="-1"></a>      <span class="cn">TRUE</span> <span class="sc">~</span> <span class="fu">as.numeric</span>(.)</span>
+<span id="cb54-35"><a href="#cb54-35" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb54-36"><a href="#cb54-36" aria-hidden="true" tabindex="-1"></a>  ))</span>
+<span id="cb54-37"><a href="#cb54-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb54-38"><a href="#cb54-38" aria-hidden="true" tabindex="-1"></a><span class="co"># Specific handling for &quot;Not Sure&quot; and &quot;Wasn&#39;t Needed&quot;</span></span>
+<span id="cb54-39"><a href="#cb54-39" aria-hidden="true" tabindex="-1"></a>daily <span class="ot">&lt;-</span> daily <span class="sc">%&gt;%</span></span>
+<span id="cb54-40"><a href="#cb54-40" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="fu">across</span>(</span>
+<span id="cb54-41"><a href="#cb54-41" aria-hidden="true" tabindex="-1"></a>    <span class="fu">c</span>(au_bib, au_fib, cub1, cub2, cub3, cub4, cub5, cub6),</span>
+<span id="cb54-42"><a href="#cb54-42" aria-hidden="true" tabindex="-1"></a>    <span class="sc">~</span> <span class="fu">case_when</span>(</span>
+<span id="cb54-43"><a href="#cb54-43" aria-hidden="true" tabindex="-1"></a>      . <span class="sc">==</span> <span class="st">&quot;1&quot;</span> <span class="sc">~</span> <span class="dv">2</span>, <span class="co"># Yes</span></span>
+<span id="cb54-44"><a href="#cb54-44" aria-hidden="true" tabindex="-1"></a>      . <span class="sc">==</span> <span class="st">&quot;3&quot;</span> <span class="sc">~</span> <span class="dv">1</span>, <span class="co"># Not Sure</span></span>
+<span id="cb54-45"><a href="#cb54-45" aria-hidden="true" tabindex="-1"></a>      . <span class="sc">==</span> <span class="st">&quot;2&quot;</span> <span class="sc">~</span> <span class="dv">0</span>, <span class="co"># No</span></span>
+<span id="cb54-46"><a href="#cb54-46" aria-hidden="true" tabindex="-1"></a>      <span class="cn">TRUE</span> <span class="sc">~</span> <span class="fu">as.numeric</span>(.)</span>
+<span id="cb54-47"><a href="#cb54-47" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb54-48"><a href="#cb54-48" aria-hidden="true" tabindex="-1"></a>  )) <span class="sc">%&gt;%</span></span>
+<span id="cb54-49"><a href="#cb54-49" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="fu">across</span>(</span>
+<span id="cb54-50"><a href="#cb54-50" aria-hidden="true" tabindex="-1"></a>    <span class="fu">c</span>(cub1, cub2, cub4),</span>
+<span id="cb54-51"><a href="#cb54-51" aria-hidden="true" tabindex="-1"></a>    <span class="sc">~</span> <span class="fu">case_when</span>(</span>
+<span id="cb54-52"><a href="#cb54-52" aria-hidden="true" tabindex="-1"></a>      . <span class="sc">==</span> <span class="st">&quot;4&quot;</span> <span class="sc">~</span> <span class="dv">3</span>, <span class="co"># Wasn&#39;t Needed</span></span>
+<span id="cb54-53"><a href="#cb54-53" aria-hidden="true" tabindex="-1"></a>      <span class="cn">TRUE</span> <span class="sc">~</span> <span class="fu">as.numeric</span>(.)</span>
+<span id="cb54-54"><a href="#cb54-54" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb54-55"><a href="#cb54-55" aria-hidden="true" tabindex="-1"></a>  ))</span>
+<span id="cb54-56"><a href="#cb54-56" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb54-57"><a href="#cb54-57" aria-hidden="true" tabindex="-1"></a><span class="co"># Recode values</span></span>
+<span id="cb54-58"><a href="#cb54-58" aria-hidden="true" tabindex="-1"></a>daily <span class="ot">&lt;-</span> daily <span class="sc">%&gt;%</span></span>
+<span id="cb54-59"><a href="#cb54-59" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="fu">across</span>(</span>
+<span id="cb54-60"><a href="#cb54-60" aria-hidden="true" tabindex="-1"></a>    <span class="fu">c</span>(dub5, dub6),</span>
+<span id="cb54-61"><a href="#cb54-61" aria-hidden="true" tabindex="-1"></a>    <span class="sc">~</span> <span class="fu">case_when</span>(</span>
+<span id="cb54-62"><a href="#cb54-62" aria-hidden="true" tabindex="-1"></a>      . <span class="sc">==</span> <span class="st">&quot;1&quot;</span> <span class="sc">~</span> <span class="dv">2</span>, <span class="co"># Yes</span></span>
+<span id="cb54-63"><a href="#cb54-63" aria-hidden="true" tabindex="-1"></a>      . <span class="sc">==</span> <span class="st">&quot;3&quot;</span> <span class="sc">~</span> <span class="dv">1</span>, <span class="co"># Can&#39;t remember (dub5); Maybe (dub6)</span></span>
+<span id="cb54-64"><a href="#cb54-64" aria-hidden="true" tabindex="-1"></a>      . <span class="sc">==</span> <span class="st">&quot;2&quot;</span> <span class="sc">~</span> <span class="dv">0</span>, <span class="co"># No</span></span>
+<span id="cb54-65"><a href="#cb54-65" aria-hidden="true" tabindex="-1"></a>      <span class="cn">TRUE</span> <span class="sc">~</span> <span class="fu">as.numeric</span>(.)</span>
+<span id="cb54-66"><a href="#cb54-66" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb54-67"><a href="#cb54-67" aria-hidden="true" tabindex="-1"></a>  ))</span>
+<span id="cb54-68"><a href="#cb54-68" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb54-69"><a href="#cb54-69" aria-hidden="true" tabindex="-1"></a><span class="co"># Check recoding</span></span>
+<span id="cb54-70"><a href="#cb54-70" aria-hidden="true" tabindex="-1"></a>daily <span class="sc">%&gt;%</span> <span class="fu">select</span>(au_pg, au_dg, au_bib, au_fib, cub1, cub2, cub3, cub4, cub5, cub6,</span>
+<span id="cb54-71"><a href="#cb54-71" aria-hidden="true" tabindex="-1"></a>             psb3, psb5, psb5a, er1_p, er2_p, er3_p, er4_p, osb4, osb5, osb8, pss, er1_o, </span>
+<span id="cb54-72"><a href="#cb54-72" aria-hidden="true" tabindex="-1"></a>             er2_o, er3_o, er4_o, ssb2, er1_s, er2_s, er3_s, er4_s, dub5, dub6,</span>
+<span id="cb54-73"><a href="#cb54-73" aria-hidden="true" tabindex="-1"></a>             na1_s, na2_s, na3_s, na4_s, na5_s,</span>
+<span id="cb54-74"><a href="#cb54-74" aria-hidden="true" tabindex="-1"></a>             na1_o, na2_o, na3_o, na4_o, na5_o,</span>
+<span id="cb54-75"><a href="#cb54-75" aria-hidden="true" tabindex="-1"></a>              pa1_s, pa2_s, pa1_o, pa2_o) <span class="sc">%&gt;%</span> <span class="fu">map</span>(tabyl)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>$au_pg
  .x[[i]]    n    percent valid_percent
@@ -3980,7 +4007,123 @@ $dub6
        0   95 0.014855356         0.475
        1   49 0.007662236         0.245
        2   56 0.008756841         0.280
-      NA 6195 0.968725567            NA</code></pre>
+      NA 6195 0.968725567            NA
+
+$na1_s
+ .x[[i]]    n     percent valid_percent
+       0  313 0.048944488    0.67895879
+       1   74 0.011571540    0.16052061
+       2   50 0.007818608    0.10845987
+       3   17 0.002658327    0.03687636
+       4    7 0.001094605    0.01518438
+      NA 5934 0.927912432            NA
+
+$na2_s
+ .x[[i]]    n      percent valid_percent
+       0  384 0.0600469116   0.832971800
+       1   42 0.0065676310   0.091106291
+       2   22 0.0034401876   0.047722343
+       3   12 0.0018764660   0.026030369
+       4    1 0.0001563722   0.002169197
+      NA 5934 0.9279124316            NA
+
+$na3_s
+ .x[[i]]    n      percent valid_percent
+       0  336 0.0525410477    0.72885033
+       1   63 0.0098514464    0.13665944
+       2   45 0.0070367475    0.09761388
+       3   12 0.0018764660    0.02603037
+       4    5 0.0007818608    0.01084599
+      NA 5934 0.9279124316            NA
+
+$na4_s
+ .x[[i]]    n      percent valid_percent
+       0  422 0.0659890539    0.91540130
+       1   28 0.0043784206    0.06073753
+       2    5 0.0007818608    0.01084599
+       3    6 0.0009382330    0.01301518
+      NA 5934 0.9279124316            NA
+
+$na5_s
+ .x[[i]]    n      percent valid_percent
+       0  411 0.0642689601   0.891540130
+       1   18 0.0028146990   0.039045553
+       2   16 0.0025019547   0.034707158
+       3   13 0.0020328382   0.028199566
+       4    3 0.0004691165   0.006507592
+      NA 5934 0.9279124316            NA
+
+$na1_o
+ .x[[i]]    n      percent valid_percent
+       0   14 0.0021892103    0.77777778
+       1    2 0.0003127443    0.11111111
+       2    1 0.0001563722    0.05555556
+       3    1 0.0001563722    0.05555556
+      NA 6377 0.9971853010            NA
+
+$na2_o
+ .x[[i]]    n      percent valid_percent
+       0   13 0.0020328382    0.72222222
+       1    2 0.0003127443    0.11111111
+       2    2 0.0003127443    0.11111111
+       3    1 0.0001563722    0.05555556
+      NA 6377 0.9971853010            NA
+
+$na3_o
+ .x[[i]]    n      percent valid_percent
+       0   16 0.0025019547     0.8888889
+       1    2 0.0003127443     0.1111111
+      NA 6377 0.9971853010            NA
+
+$na4_o
+ .x[[i]]    n      percent valid_percent
+       0   12 0.0018764660    0.66666667
+       1    4 0.0006254887    0.22222222
+       2    1 0.0001563722    0.05555556
+       4    1 0.0001563722    0.05555556
+      NA 6377 0.9971853010            NA
+
+$na5_o
+ .x[[i]]    n      percent valid_percent
+       0   14 0.0021892103     0.7777778
+       2    4 0.0006254887     0.2222222
+      NA 6377 0.9971853010            NA
+
+$pa1_s
+ .x[[i]]    n     percent valid_percent
+       0  187 0.029241595    0.40563991
+       1   98 0.015324472    0.21258134
+       2  105 0.016419077    0.22776573
+       3   61 0.009538702    0.13232104
+       4   10 0.001563722    0.02169197
+      NA 5934 0.927912432            NA
+
+$pa2_s
+ .x[[i]]    n     percent valid_percent
+       0  170 0.026583268    0.36876356
+       1   68 0.010633307    0.14750542
+       2  132 0.020641126    0.28633406
+       3   64 0.010007819    0.13882863
+       4   27 0.004222048    0.05856833
+      NA 5934 0.927912432            NA
+
+$pa1_o
+ .x[[i]]    n      percent valid_percent
+       0    7 0.0010946052     0.3888889
+       1    3 0.0004691165     0.1666667
+       2    2 0.0003127443     0.1111111
+       3    3 0.0004691165     0.1666667
+       4    3 0.0004691165     0.1666667
+      NA 6377 0.9971853010            NA
+
+$pa2_o
+ .x[[i]]    n      percent valid_percent
+       0    3 0.0004691165    0.16666667
+       1    1 0.0001563722    0.05555556
+       2    6 0.0009382330    0.33333333
+       3    4 0.0006254887    0.22222222
+       4    4 0.0006254887    0.22222222
+      NA 6377 0.9971853010            NA</code></pre>
 </div>
 </div>
 </section>

@@ -9,7 +9,7 @@ format:
     toc: true 
     toc_depth: 4
 editor_options: 
-  chunk_output_type: console
+  chunk_output_type: inline
 ---
 ## Introduction
 
@@ -105,6 +105,21 @@ ps_behavior <- ps_behavior %>% select(
   pa1_p, na1_p, na2_p, na3_p, na4_p, na5_p, pa2_p, er1_p, er2_p, er3_p, er4_p)
 ```
 
+```{r}
+na_p_list <- c("na1_p", "na2_p", "na3_p", "na4_p", "na5_p")
+psych::alpha(ps_behavior[, na_p_list], keys = c())
+
+ps_behavior$na_sum <- varScore(ps_behavior, 
+                               Forward= na_p_list,       
+                               Reverse= c(),
+                               Range=c(0, 4),
+                               MaxMiss=0.25,
+                               Prorate=T) / 5
+
+ps_behavior <- ps_behavior %>% select(-na1_p, -na2_p, -na3_p, -na4_p, -na5_p)
+```
+
+
 ### Online sexual behavior 
 Since the last survey, have you used any websites, dating apps, or social platforms to look for sexual imagery, partners, or content?
 ```{r}
@@ -119,9 +134,25 @@ os_behavior <- os_behavior %>%
     random_id, id_day, recorded_date, status, progress, duration_in_seconds, 
     osb2, osb2_txt, osb3, osb4, osb5, osb6, osb6_txt, osb7, osb8, 
     osb9, osb10, aro_of, pls_of, pss, exp_o, str_o, pa1_o, 
-    na1_o, na2_o, na3_o, na4_o, pa2_o, na5_o, 
+    na1_o, na2_o, na3_o, na4_o, na5_o, pa2_o, na5_o, 
     er1_o, er2_o, er3_o, er4_o)
 ```
+
+
+```{r}
+na_os_list <- c("na1_o", "na2_o", "na3_o", "na4_o", "na5_o")
+psych::alpha(os_behavior[, na_os_list], keys = c())
+
+os_behavior$na_sum <- varScore(os_behavior,
+                               Forward= na_os_list,
+                               Reverse= c(),
+                               Range=c(0, 4),
+                               MaxMiss=0.25,
+                               Prorate=T) / 5
+
+os_behavior <- os_behavior %>% select(-na1_o, -na2_o, -na3_o, -na4_o, -na5_o)
+```
+
 
 ### Solo sexual activity
 Since the last survey, have you engaged in any solo sexual activity (i.e., masturbation)?
@@ -138,6 +169,20 @@ ss_behavior <- ss_behavior %>%
     ssb2, ssb3, ssb3_txt, ssb4, ssb5, ssb6,
     aro_sf, pls_sf, exp_s, str_s, pa1_s, na1_s, na2_s, na3_s, 
     na4_s, na5_s, pa2_s, er1_s, er2_s, er3_s, er4_s)
+```
+
+```{r}
+na_ss_list <- c("na1_s", "na2_s", "na3_s", "na4_s", "na5_s")
+psych::alpha(ss_behavior[, na_ss_list], keys = c())
+
+ss_behavior$na_sum <- varScore(ss_behavior,
+                               Forward= na_ss_list,
+                               Reverse= c(),
+                               Range=c(0, 4),
+                               MaxMiss=0.25,
+                               Prorate=T) / 5
+
+ss_behavior <- ss_behavior %>% select(-na1_s, -na2_s, -na3_s, -na4_s, -na5_s)
 ```
 
 

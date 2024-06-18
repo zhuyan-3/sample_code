@@ -1,0 +1,181 @@
+---
+title: "Mediation Analysis"
+author: "Yan Zhu"
+date: "2023-10-14"
+output: 
+  html_document:
+    toc: yes
+    toc_float: yes
+    theme: cerulean
+    number_sections: no
+---
+
+```{r setup, include=FALSE}
+library(psych)
+library(tidyverse)
+library(effectsize)
+# library(rockchalk)
+library(GGally)
+library(lavaan) # mediation
+
+source("/Users/yan/Desktop/sample_code/functions.R")
+```
+
+# Set up
+Read the data, and explore the data set.
+```{r}
+d <- read_csv("/Users/yan/Desktop/sample_code/Design and Analysis of Psychological Experiments/Data/Outgroup.csv", show_col_types = FALSE)
+head(d)
+describe(d)
+```
+
+# Exploring Data
+Create a correlation matrix with density plots and scatter plots.
+```{r}
+d %>%
+  select(-subID) %>%
+  GGally::ggpairs()
+```
+
+Center the condition variable (around 0).
+```{r}
+d$condition_c <- dplyr::recode(d$condition, "1" = -.5, "2" = .5)
+```
+
+Run a model to test whether participants who rated their ingroup had higher heterog scores than participants who rated their outgroup. What is the name of this particular statistical test?
+```{r}
+mod_1 <- lm(heterog ~ condition_c, data = d)
+(mod_1_sum <- summary(mod_1))
+mod_1_sum$coefficients[, 't value']^2
+```
+
+*This is an independent (or two-samples) t-test.*
+
+**Summary:** Participants that were assigned to rate the outgroup reported heterogeneity scores 2.60 units lower than participants who rated the ingroup, F(1,18)=9.81,p=.006.
+
+**The intercept of this model represent:** For participants theoretically in-between the two experimental conditions, the expected heterogeneity score is 4.90. Because there are equal Ns per condition, this is also the average heterogeneity score for the sample.
+
+# Mediation 1
+**Quesyion:** Are the data consistent with a hypothesized mediational model according to which the number of group members that participants know (individ) mediates the relation between ingroup/outgroup and perceived heterogeneity? 
+
+## Total Effect
+```{r}
+med_1_total <- lm(heterog ~ condition_c, data = d)
+summary(med_1_total)
+```
+
+*Step 1: There is an effect of condition on perceived heterogeneity, such that participants rated members from a different major as 2.6 points less heterogenous than members from the participant’s major.*
+
+## Path A
+```{r}
+med_1_a <- lm(individ ~ condition_c, data = d)
+summary(med_1_a)
+```
+
+*Step 2: There is an effect of condition on the number of individuals people know. On average, people who were asked about the outgroup reported knowing 4.3 fewer people than those asked about the ingroup.*
+
+## Path B
+```{r}
+med_1_b <- lm(heterog ~ individ + condition_c, data = d)
+summary(med_1_b)
+```
+
+*Step 3: There is no effect of the number of individuals in a group somebody knows on heterogeneity scores.*
+
+## Indirect Effect
+
+- No need to look at the indirect effect since step 3 didn’t work out. 
+- No evidence of mediation.
+
+
+# Mediation 2
+Are the data consistent with a hypothesized mediational model according to which the number of subgroups that participants know (subgr) mediates the relation between ingroup/outgroup and perceived heterogeneity? 
+
+## Total Effect
+```{r}
+med_2_total <- lm(heterog ~ condition_c, data = d)
+summary(med_2_total)
+```
+
+*Step 1: There is an effect of condition on perceived heterogeneity, such that participants rated members from a different major as 2.6 points less heterogenous than members from the participant’s major.*
+
+## Path A
+```{r}
+med_2_a <- lm(subgr ~ condition_c, data = d)
+summary(med_2_a)
+```
+
+*Step 2: There is an effect of condition on the number of subgroups people know. On average, people who were asked about the outgroup reported knowing 2.3 fewer subgroups than those asked about the ingroup.*
+
+## Path B
+```{r}
+med_2_b <- lm(heterog ~ subgr + condition_c, data = d)
+summary(med_2_b)
+```
+
+*Step 3: There is an effect of the number of subgroups somebody knows on heterogeneity scores, after controlling for condition. When controlling for condition, for each additional subgroup somebody knows heterogeneity scores increase by 0.78.*
+
+## Indirect Effect
+```{r}
+subg <- ' 
+subgr ~ a * condition_c
+heterog ~ c_prime * condition_c + b * subgr
+
+# Define effects
+ab:= a*b # Indirect effect
+Total := c_prime + a*b # Total effect
+'
+fit2 <- sem(subg, data = d, se = "bootstrap", bootstrap = 1000)
+parameterEstimates(fit2, ci = TRUE, level = 0.95, boot.ci.type = "perc", zstat = F)
+```
+
+*Step 4: There is evidence for mediation as the confidence interval of the indirect effect does not include 0, b = -1.79, 95% CI = [-3.62, -0.38]*
+
+**Overall, 69% of the total effect of condition on perceived heterogeneity is mediated by the number of subgroups that participants could name (-1.788/-2.600)**
+
+
+# Mediation 3
+Are the data consistent with a hypothesized mediational model according to which liking (like) mediates the relation between ingroup/outgroup and perceived heterogeneity?
+## Total Effect
+```{r}
+med_3_total <- lm(heterog ~ condition_c, data = d)
+summary(med_3_total)
+```
+
+*Step 1: There is an effect of condition on perceived heterogeneity, such that participants rated members from a different major as 2.6 points less heterogenous than members from the participant’s major.*
+
+## Path A
+```{r}
+med_3_a <- lm(like ~ condition_c, data = d)
+summary(med_3_a)
+```
+
+*Step 2: There is an effect of condition on liking. People who were asked about the outgroup reported liking the group 2.1 units less than those asked about the ingroup.*
+
+## Path B
+```{r}
+med_3_b <- lm(heterog ~ like + condition_c, data = d)
+summary(med_3_b)
+```
+
+*Step 3: There is no effect of liking on heterogeneity scores. No evidence of mediation*
+
+We do not need to test for the indirect effect because path b was not significant.
+
+
+# Results section 
+
+- Twenty undergraduates were randomly assigned to evaluate either an ingroup (n=10) or an outgroup (n=10). To investigate whether undergraduates perceive their ingroup (their major) to be more variable than their outgroup (another major), we fit a General Linear Model predicting perceived variability from group membership. Consistent with the existing literature, participants that were assigned to rate the outgroup gave heterogeneity scores 2.60 units lower than participants who rated the ingroup, F(1,18)=9.81, p=.006, η2p=.35.
+
+- To uncover a potential mechanism for the above effect, we conducted tests of mediation with each of our potential mediators (number of individuals, number of subgroups, and liking). Thus, for each mediator, we fit a path model predicting the mediator from group membership, and perceived variability from both the mediator and group membership. We followed recommendations of Preacher and Hayes (2004) and tested the indirect effect using nonparametric percentile bootstrapping. We only claim that our data is consistent with mediation if the following conditions are met: group membership has an effect on the mediator, the mediator has an effect on perceived variability (when controlling for group membership), and the indirect effect is nonzero. For number of individuals and liking, at least one of the four mediation conditions was not satisfied.
+
+- Our analysis of number of subgroups satisfied all the conditions for mediation (see Figure 1). Participants who were asked about another major reported knowing 2.3 fewer subgroups than those asked about their own major, F(1,18)=15.82, p<.001, η2p=.47. When controlling for group membership, each additional subgroup perceived in the target group was related to a 0.78 unit increase in perceived variability, F(1, 18) = 7.06, p = .02, η2p=.29. Moreover, when controlling for number of subgroups, the direct effect of group membership on perceived variability was not significant, b=−0.81,F(1,18)=0.68, p=.42, η2p=.04. The indirect effect of group membership on perceived variability through subgroups was significant, b=−1.79
+, 95% CI = [-3.62, -0.38]. Therefore, these data are consistent with the hypothesis that people perceive members of their own ingroup as more variable than members of a relevant outgroup because they perceive their own ingroups to have a greater number of subgroups. 
+
+
+
+
+
+
+
+

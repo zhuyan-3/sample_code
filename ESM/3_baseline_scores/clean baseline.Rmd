@@ -49,7 +49,7 @@ source("/Users/yan/Desktop/sample_code/functions.R")
 
 [Victor, S. E., & Klonsky, E. D. (2016). Validation of a brief version of the difficulties in emotion regulation scale (DERS-18) in five samples. Journal of psychopathology and Behavioral Assessment, 38(4), 582-589.](https://www2.psych.ubc.ca/~klonsky/publications/DERS18.pdf)
 ```{r, message=FALSE}
-ders <- read_csv("/Users/yan/Desktop/sample_code/ESM/1_anonymization/anonymous_baseline.csv") %>% 
+ders <- read_csv("/Users/yan/Desktop/sample_code/ESM/1_anonymization/anonymous_baseline.csv", show_col_types = FALSE) %>% 
   select(random_id, ders1, ders2, ders3, ders4, ders5, ders6, ders7, ders8, ders9, ders10, ders11, ders12, ders13, ders14, ders15, ders16, ders17, ders18)
 
 describe(ders)

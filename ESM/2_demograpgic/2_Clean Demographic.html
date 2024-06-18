@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Yan Zhu">
-<meta name="dcterms.date" content="2024-05-24">
+<meta name="dcterms.date" content="2024-06-06">
 
 <title>Clean Demographic</title>
 <style>
@@ -3118,7 +3118,7 @@ vertical-align: -.125em;
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">May 24, 2024</p>
+      <p class="date">June 6, 2024</p>
     </div>
   </div>
   
@@ -3162,9 +3162,11 @@ The following objects are masked from &#39;package:stats&#39;:
 
 
 [conflicted] Will prefer dplyr::filter over any other package.
-[conflicted] Will prefer dplyr::lag over any other package.
-[conflicted] Will prefer stats::chisq.test over any other package.
-[conflicted] Will prefer stats::fisher.test over any other package.
+[conflicted] Will prefer ggplot2::`%+%` over any other package.
+[conflicted] Will prefer ggplot2::alpha over any other package.
+[conflicted] Will prefer Matrix::expand over any other package.
+[conflicted] Will prefer Matrix::pack over any other package.
+[conflicted] Will prefer Matrix::unpack over any other package.
 Loading required package: Matrix
 
 
@@ -3183,20 +3185,10 @@ The following objects are masked from &#39;package:tidyr&#39;:
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># dis2, dis_inj, dis_combined, dis_mult, rel, smu (In old code book, but not in the data)</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="co"># ADD! I will create a new Code Book which could be found in repo/sample_code</span></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>demog <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">&quot;/Users/yan/Desktop/sample_code/ESM/1_anonymization/anonymous_baseline.csv&quot;</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>demog <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">&quot;/Users/yan/Desktop/sample_code/ESM/1_anonymization/anonymous_baseline.csv&quot;</span>, <span class="at">show_col_types =</span> <span class="cn">FALSE</span>) <span class="sc">%&gt;%</span> </span>
 <span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(random_id, age, res, sch_yr, race, mult, race_txt, eth, dis1, dis_dev,</span>
 <span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>         dis_lrn, dis_sen, dis_mob, dis_psy, dis_unl, dis_txt, dis_ill,dis_dev,</span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>         gend, trans, sx_ori,, dem12, f_aid, p_grnt, job, f_need, fgen) <span class="sc">%&gt;%</span> <span class="fu">glimpse</span>(<span class="at">show_col_types =</span> <span class="cn">FALSE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stderr">
-<pre><code>Rows: 254 Columns: 410
-── Column specification ────────────────────────────────────────────────────────
-Delimiter: &quot;,&quot;
-chr  (18): response_id, mult, race_txt, dis_txt, smu_9_text, ses1_7_text, ad...
-dbl (392): x1, x3, progress, consent, dem4, dis_dev, dis_lrn, dis_sen, dis_m...
-
-ℹ Use `spec()` to retrieve the full column specification for this data.
-ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
-</div>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>         gend, trans, sx_ori,, dem12, f_aid, p_grnt, job, f_need, fgen) <span class="sc">%&gt;%</span> <span class="fu">glimpse</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Rows: 254
 Columns: 26
@@ -3236,16 +3228,16 @@ $ fgen      &lt;dbl&gt; 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0,
 <h3 class="anchored" data-anchor-id="age">Age</h3>
 <p>Variable code as “age” Survey Question: “How old are you?”</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(demog, <span class="fu">aes</span>(<span class="at">x =</span> age)) <span class="sc">+</span></span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_bar</span>(<span class="at">fill =</span> <span class="st">&quot;skyblue&quot;</span>, <span class="at">color =</span> <span class="st">&quot;black&quot;</span>) <span class="sc">+</span></span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_text</span>(<span class="at">stat =</span> <span class="st">&quot;count&quot;</span>, <span class="fu">aes</span>(<span class="at">label =</span> <span class="fu">after_stat</span>(count)), <span class="at">vjust =</span> <span class="sc">-</span><span class="fl">0.5</span>) <span class="sc">+</span></span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_continuous</span>(<span class="at">breaks =</span> <span class="fu">seq</span>(<span class="fu">min</span>(demog<span class="sc">$</span>age), <span class="fu">max</span>(demog<span class="sc">$</span>age), <span class="at">by =</span> <span class="dv">1</span>)) <span class="sc">+</span></span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">&quot;Age&quot;</span>,</span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>       <span class="at">y =</span> <span class="st">&quot;Frequency&quot;</span>,</span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>       <span class="at">title =</span> <span class="st">&quot;Histogram of Age&quot;</span>,</span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>       <span class="at">subtitle =</span> <span class="fu">paste</span>(<span class="st">&quot;Sample Size:&quot;</span>, <span class="fu">nrow</span>(demog))) <span class="sc">+</span></span>
-<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">plot.subtitle =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">10</span>)) <span class="sc">+</span></span>
-<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(demog, <span class="fu">aes</span>(<span class="at">x =</span> age)) <span class="sc">+</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_bar</span>(<span class="at">fill =</span> <span class="st">&quot;skyblue&quot;</span>, <span class="at">color =</span> <span class="st">&quot;black&quot;</span>) <span class="sc">+</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_text</span>(<span class="at">stat =</span> <span class="st">&quot;count&quot;</span>, <span class="fu">aes</span>(<span class="at">label =</span> <span class="fu">after_stat</span>(count)), <span class="at">vjust =</span> <span class="sc">-</span><span class="fl">0.5</span>) <span class="sc">+</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_continuous</span>(<span class="at">breaks =</span> <span class="fu">seq</span>(<span class="fu">min</span>(demog<span class="sc">$</span>age), <span class="fu">max</span>(demog<span class="sc">$</span>age), <span class="at">by =</span> <span class="dv">1</span>)) <span class="sc">+</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">&quot;Age&quot;</span>,</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>       <span class="at">y =</span> <span class="st">&quot;Frequency&quot;</span>,</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>       <span class="at">title =</span> <span class="st">&quot;Histogram of Age&quot;</span>,</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>       <span class="at">subtitle =</span> <span class="fu">paste</span>(<span class="st">&quot;Sample Size:&quot;</span>, <span class="fu">nrow</span>(demog))) <span class="sc">+</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">plot.subtitle =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">10</span>)) <span class="sc">+</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
@@ -3259,7 +3251,7 @@ $ fgen      &lt;dbl&gt; 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0,
 <h3 class="anchored" data-anchor-id="residence">Residence</h3>
 <p>Variable code as “res” Where do you currently live?</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">table</span>(demog<span class="sc">$</span>res)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">table</span>(demog<span class="sc">$</span>res)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>
   1   2   4   5   6   8 
@@ -3269,13 +3261,13 @@ $ fgen      &lt;dbl&gt; 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0,
 <p><strong>Note:</strong> 1 = On campus in a dorm , 2 = On campus in an apartment, 3 = Other on campus arrangement, 4 = Off campus apartment, 5 = Off campus house, 6 = Off campus with parents, 7 = On campus fraternity/soroity house, 8 = Off campus fraternity/sorority house, 9 = Other</p>
 <p>The numbers in the res column are replaced by corresponding labels, making the data more readable.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>demog<span class="sc">$</span>res <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(demog<span class="sc">$</span>res <span class="sc">==</span> <span class="dv">1</span>, <span class="st">&quot;On campus in a dorm&quot;</span>, demog<span class="sc">$</span>res)</span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>demog<span class="sc">$</span>res <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(demog<span class="sc">$</span>res <span class="sc">==</span> <span class="dv">2</span>, <span class="st">&quot;On campus in an apartment&quot;</span>, demog<span class="sc">$</span>res)</span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>demog<span class="sc">$</span>res <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(demog<span class="sc">$</span>res <span class="sc">==</span> <span class="dv">4</span>, <span class="st">&quot;Off campus apartment&quot;</span>, demog<span class="sc">$</span>res)</span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>demog<span class="sc">$</span>res <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(demog<span class="sc">$</span>res <span class="sc">==</span> <span class="dv">5</span>, <span class="st">&quot;Off campus with parents&quot;</span>, demog<span class="sc">$</span>res)</span>
-<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>demog<span class="sc">$</span>res <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(demog<span class="sc">$</span>res <span class="sc">==</span> <span class="dv">6</span>, <span class="st">&quot;Off campus with parents&quot;</span>, demog<span class="sc">$</span>res)</span>
-<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>demog<span class="sc">$</span>res <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(demog<span class="sc">$</span>res <span class="sc">==</span> <span class="dv">8</span>, <span class="st">&quot;Off campus fraternity/sorority house&quot;</span>, demog<span class="sc">$</span>res)</span>
-<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="fu">prop_tab</span>(demog, res)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>demog<span class="sc">$</span>res <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(demog<span class="sc">$</span>res <span class="sc">==</span> <span class="dv">1</span>, <span class="st">&quot;On campus in a dorm&quot;</span>, demog<span class="sc">$</span>res)</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>demog<span class="sc">$</span>res <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(demog<span class="sc">$</span>res <span class="sc">==</span> <span class="dv">2</span>, <span class="st">&quot;On campus in an apartment&quot;</span>, demog<span class="sc">$</span>res)</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>demog<span class="sc">$</span>res <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(demog<span class="sc">$</span>res <span class="sc">==</span> <span class="dv">4</span>, <span class="st">&quot;Off campus apartment&quot;</span>, demog<span class="sc">$</span>res)</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>demog<span class="sc">$</span>res <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(demog<span class="sc">$</span>res <span class="sc">==</span> <span class="dv">5</span>, <span class="st">&quot;Off campus with parents&quot;</span>, demog<span class="sc">$</span>res)</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>demog<span class="sc">$</span>res <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(demog<span class="sc">$</span>res <span class="sc">==</span> <span class="dv">6</span>, <span class="st">&quot;Off campus with parents&quot;</span>, demog<span class="sc">$</span>res)</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>demog<span class="sc">$</span>res <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(demog<span class="sc">$</span>res <span class="sc">==</span> <span class="dv">8</span>, <span class="st">&quot;Off campus fraternity/sorority house&quot;</span>, demog<span class="sc">$</span>res)</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="fu">prop_tab</span>(demog, res)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 5 × 3
   res                                      n    prop
@@ -3292,7 +3284,7 @@ $ fgen      &lt;dbl&gt; 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0,
 <h3 class="anchored" data-anchor-id="school-tear">School Tear</h3>
 <p>Variable code as “sch_yr” What is your year in school?</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">prop_tab</span>(demog, sch_yr)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">prop_tab</span>(demog, sch_yr)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 4 × 3
   sch_yr     n    prop
@@ -3308,16 +3300,16 @@ $ fgen      &lt;dbl&gt; 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0,
 <h3 class="anchored" data-anchor-id="race">Race</h3>
 <p>Variable code as “race” Recognizing that race is complex, which of the following classifications of race best describe how you identify?</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Checking NA</span></span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sum</span>(<span class="fu">is.na</span>(demog<span class="sc">$</span>race))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Checking NA</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sum</span>(<span class="fu">is.na</span>(demog<span class="sc">$</span>race))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] 2</code></pre>
 </div>
 </div>
 <p>Most of the variables having NA values is reasonable because there were no applicable options to describe our participants. However, Race has 2 missing data points which seem unexpected if “mult” and “race_txt” are also NA because they are open text-entry responses. Let’s check those two rows.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># check the rows with NA in Race</span></span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>demog[<span class="fu">is.na</span>(demog<span class="sc">$</span>race), ]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># check the rows with NA in Race</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>demog[<span class="fu">is.na</span>(demog<span class="sc">$</span>race), ]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 2 × 26
   random_id   age res    sch_yr race  mult  race_txt   eth  dis1 dis_dev dis_lrn
@@ -3332,9 +3324,9 @@ $ fgen      &lt;dbl&gt; 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0,
 </div>
 <p><em>There were no information in race_txt and mult(Open text-entry responses from individuals identifying as multiracial). I would label it with “Unknown” string</em></p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Change NA to string.</span></span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>demog<span class="sc">$</span>race <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(<span class="fu">is.na</span>(demog<span class="sc">$</span>race), <span class="st">&quot;Unknown&quot;</span>, demog<span class="sc">$</span>race)</span>
-<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="fu">prop_tab</span>(demog, race)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Change NA to string.</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>demog<span class="sc">$</span>race <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(<span class="fu">is.na</span>(demog<span class="sc">$</span>race), <span class="st">&quot;Unknown&quot;</span>, demog<span class="sc">$</span>race)</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="fu">prop_tab</span>(demog, race)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 8 × 3
   race                          n    prop
@@ -3351,8 +3343,8 @@ $ fgen      &lt;dbl&gt; 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0,
 </div>
 <p>More data cleaning on race! Text-entry is also an unexpected answer.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co"># make sure if &quot;Text-entry&quot; with other information about race in other columns</span></span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>demog[demog<span class="sc">$</span>race <span class="sc">==</span> <span class="st">&quot;Text-entry&quot;</span>, ]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># make sure if &quot;Text-entry&quot; with other information about race in other columns</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>demog[demog<span class="sc">$</span>race <span class="sc">==</span> <span class="st">&quot;Text-entry&quot;</span>, ]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 2 × 26
   random_id   age res    sch_yr race  mult  race_txt   eth  dis1 dis_dev dis_lrn
@@ -3367,8 +3359,8 @@ $ fgen      &lt;dbl&gt; 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0,
 </div>
 <p><em>Nope, I will replace “Unknown” instead of “Text-entry”</em></p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>demog<span class="sc">$</span>race <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(demog<span class="sc">$</span>race <span class="sc">==</span> <span class="st">&quot;Text-entry&quot;</span>, <span class="st">&quot;Unknown&quot;</span>, demog<span class="sc">$</span>race)</span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="fu">prop_tab</span>(demog, race)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>demog<span class="sc">$</span>race <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(demog<span class="sc">$</span>race <span class="sc">==</span> <span class="st">&quot;Text-entry&quot;</span>, <span class="st">&quot;Unknown&quot;</span>, demog<span class="sc">$</span>race)</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="fu">prop_tab</span>(demog, race)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 7 × 3
   race                          n    prop
@@ -3383,7 +3375,7 @@ $ fgen      &lt;dbl&gt; 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0,
 </div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>demog[<span class="sc">!</span><span class="fu">is.na</span>(demog<span class="sc">$</span>race_txt), ]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>demog[<span class="sc">!</span><span class="fu">is.na</span>(demog<span class="sc">$</span>race_txt), ]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 4 × 26
   random_id   age res    sch_yr race  mult  race_txt   eth  dis1 dis_dev dis_lrn
@@ -3399,7 +3391,7 @@ $ fgen      &lt;dbl&gt; 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0,
 </div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>demog[<span class="sc">!</span><span class="fu">is.na</span>(demog<span class="sc">$</span>mult), ]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>demog[<span class="sc">!</span><span class="fu">is.na</span>(demog<span class="sc">$</span>mult), ]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 5 × 26
   random_id   age res    sch_yr race  mult  race_txt   eth  dis1 dis_dev dis_lrn
@@ -3420,7 +3412,7 @@ $ fgen      &lt;dbl&gt; 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0,
 <h3 class="anchored" data-anchor-id="ethnicity">Ethnicity</h3>
 <p>Do you identify as Hispanic or Latino/Latina or Latinx?</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="fu">prop_tab</span>(demog, eth)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="fu">prop_tab</span>(demog, eth)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 2 × 3
     eth     n  prop
@@ -3428,14 +3420,14 @@ $ fgen      &lt;dbl&gt; 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0,
 1     0   228 0.898
 2     1    26 0.102</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1 = Yes, 0 = No, 3 = prefer not to respond</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1 = Yes, 0 = No, 3 = prefer not to respond</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="disability" class="level3">
 <h3 class="anchored" data-anchor-id="disability">Disability</h3>
 <p>Do you consider yourself to have a disability or be disabled? (e.g., intellectual disability, learning disability, sensory disability, mobility disability, mental illness, etc.)</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="fu">prop_tab</span>(demog, dis1)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="fu">prop_tab</span>(demog, dis1)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 2 × 3
    dis1     n  prop
@@ -3445,7 +3437,7 @@ $ fgen      &lt;dbl&gt; 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0,
 </div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="fu">prop_tab</span>(demog, dis_dev)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="fu">prop_tab</span>(demog, dis_dev)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 3 × 3
   dis_dev     n   prop
@@ -3456,13 +3448,13 @@ $ fgen      &lt;dbl&gt; 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0,
 </div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Select columns containing &quot;dis_&quot; in their column names</span></span>
-<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>dis_columns <span class="ot">&lt;-</span> demog <span class="sc">%&gt;%</span></span>
-<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="fu">contains</span>(<span class="st">&quot;dis_&quot;</span>))</span>
-<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Count the number of NAs in each column</span></span>
-<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>na_counts <span class="ot">&lt;-</span> <span class="fu">colSums</span>(<span class="fu">is.na</span>(dis_columns))</span>
-<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a>na_counts</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Select columns containing &quot;dis_&quot; in their column names</span></span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>dis_columns <span class="ot">&lt;-</span> demog <span class="sc">%&gt;%</span></span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="fu">contains</span>(<span class="st">&quot;dis_&quot;</span>))</span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Count the number of NAs in each column</span></span>
+<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a>na_counts <span class="ot">&lt;-</span> <span class="fu">colSums</span>(<span class="fu">is.na</span>(dis_columns))</span>
+<span id="cb32-7"><a href="#cb32-7" aria-hidden="true" tabindex="-1"></a>na_counts</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>dis_dev dis_lrn dis_sen dis_mob dis_psy dis_unl dis_txt dis_ill 
     219     219     219     219     219     221     249     221 </code></pre>
@@ -3470,23 +3462,23 @@ $ fgen      &lt;dbl&gt; 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0,
 </div>
 <p>Except “dis_txt”, the count the number of columns which containing “dis_” should be 221. However, the NA count here seems not right.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="co"># List the column names that need to be replaced</span></span>
-<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>cols_to_replace <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;dis_dev&quot;</span>, <span class="st">&quot;dis_lrn&quot;</span>, <span class="st">&quot;dis_sen&quot;</span>, <span class="st">&quot;dis_mob&quot;</span>, <span class="st">&quot;dis_psy&quot;</span>, <span class="st">&quot;dis_unl&quot;</span>, <span class="st">&quot;dis_ill&quot;</span>)</span>
-<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Use mutate and across to replace</span></span>
-<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a>demog <span class="ot">&lt;-</span> demog <span class="sc">%&gt;%</span></span>
-<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="fu">across</span>(<span class="fu">all_of</span>(cols_to_replace), <span class="sc">~</span><span class="fu">ifelse</span>(<span class="fu">is.na</span>(.), <span class="dv">0</span>, .)))</span>
-<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb35-8"><a href="#cb35-8" aria-hidden="true" tabindex="-1"></a>demog <span class="ot">&lt;-</span> demog <span class="sc">%&gt;%</span></span>
-<span id="cb35-9"><a href="#cb35-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">dis_txt =</span> <span class="fu">ifelse</span>(<span class="fu">is.na</span>(dis_txt), <span class="st">&quot;None&quot;</span>, dis_txt))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="co"># List the column names that need to be replaced</span></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>cols_to_replace <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;dis_dev&quot;</span>, <span class="st">&quot;dis_lrn&quot;</span>, <span class="st">&quot;dis_sen&quot;</span>, <span class="st">&quot;dis_mob&quot;</span>, <span class="st">&quot;dis_psy&quot;</span>, <span class="st">&quot;dis_unl&quot;</span>, <span class="st">&quot;dis_ill&quot;</span>)</span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Use mutate and across to replace</span></span>
+<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a>demog <span class="ot">&lt;-</span> demog <span class="sc">%&gt;%</span></span>
+<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="fu">across</span>(<span class="fu">all_of</span>(cols_to_replace), <span class="sc">~</span><span class="fu">ifelse</span>(<span class="fu">is.na</span>(.), <span class="dv">0</span>, .)))</span>
+<span id="cb34-7"><a href="#cb34-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-8"><a href="#cb34-8" aria-hidden="true" tabindex="-1"></a>demog <span class="ot">&lt;-</span> demog <span class="sc">%&gt;%</span></span>
+<span id="cb34-9"><a href="#cb34-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">dis_txt =</span> <span class="fu">ifelse</span>(<span class="fu">is.na</span>(dis_txt), <span class="st">&quot;None&quot;</span>, dis_txt))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="gender" class="level3">
 <h3 class="anchored" data-anchor-id="gender">Gender</h3>
 <p>Recognizing that gender is complex, how would you describe your gender?</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1 = Man, 2 = Woman, 3 = Non-binary, 4 = Gender fluid, 5 = Two-Spirit, 6 = Agender, 7 = Pangender, 8 = Another gender identity [Write in]</span></span>
-<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a><span class="fu">prop_tab</span>(demog, gend)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1 = Man, 2 = Woman, 3 = Non-binary, 4 = Gender fluid, 5 = Two-Spirit, 6 = Agender, 7 = Pangender, 8 = Another gender identity [Write in]</span></span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a><span class="fu">prop_tab</span>(demog, gend)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 4 × 3
    gend     n    prop
@@ -3498,11 +3490,11 @@ $ fgen      &lt;dbl&gt; 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0,
 </div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a>demog<span class="sc">$</span>gend <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(demog<span class="sc">$</span>gend <span class="sc">==</span> <span class="dv">1</span>, <span class="st">&quot;Male&quot;</span>, demog<span class="sc">$</span>gend)</span>
-<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>demog<span class="sc">$</span>gend <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(demog<span class="sc">$</span>gend <span class="sc">==</span> <span class="dv">2</span>, <span class="st">&quot;Female&quot;</span>, demog<span class="sc">$</span>gend)</span>
-<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>demog<span class="sc">$</span>gend <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(demog<span class="sc">$</span>gend <span class="sc">==</span> <span class="dv">4</span>, <span class="st">&quot;Other&quot;</span>, demog<span class="sc">$</span>gend)</span>
-<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a>demog<span class="sc">$</span>gend <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(demog<span class="sc">$</span>gend <span class="sc">==</span> <span class="dv">5</span>, <span class="st">&quot;Other&quot;</span>, demog<span class="sc">$</span>gend)</span>
-<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a><span class="fu">prop_tab</span>(demog, gend)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>demog<span class="sc">$</span>gend <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(demog<span class="sc">$</span>gend <span class="sc">==</span> <span class="dv">1</span>, <span class="st">&quot;Male&quot;</span>, demog<span class="sc">$</span>gend)</span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>demog<span class="sc">$</span>gend <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(demog<span class="sc">$</span>gend <span class="sc">==</span> <span class="dv">2</span>, <span class="st">&quot;Female&quot;</span>, demog<span class="sc">$</span>gend)</span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>demog<span class="sc">$</span>gend <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(demog<span class="sc">$</span>gend <span class="sc">==</span> <span class="dv">4</span>, <span class="st">&quot;Other&quot;</span>, demog<span class="sc">$</span>gend)</span>
+<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a>demog<span class="sc">$</span>gend <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(demog<span class="sc">$</span>gend <span class="sc">==</span> <span class="dv">5</span>, <span class="st">&quot;Other&quot;</span>, demog<span class="sc">$</span>gend)</span>
+<span id="cb37-5"><a href="#cb37-5" aria-hidden="true" tabindex="-1"></a><span class="fu">prop_tab</span>(demog, gend)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 3 × 3
   gend       n   prop
@@ -3514,8 +3506,8 @@ $ fgen      &lt;dbl&gt; 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0,
 </div>
 <p>Question: Are you transgender?</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1 = Yes, 0 = No</span></span>
-<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a><span class="fu">prop_tab</span>(demog, trans)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1 = Yes, 0 = No</span></span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a><span class="fu">prop_tab</span>(demog, trans)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 2 × 3
   trans     n    prop
@@ -3526,7 +3518,7 @@ $ fgen      &lt;dbl&gt; 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0,
 </div>
 <p>Question: Recognizing that sexual orientation can be fluid, how would you describe your current sexual orientation?</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="fu">prop_tab</span>(demog, sx_ori)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="fu">prop_tab</span>(demog, sx_ori)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 6 × 3
   sx_ori     n    prop
@@ -3540,16 +3532,16 @@ $ fgen      &lt;dbl&gt; 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0,
 </div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1 = Gay, 2 = Lesbian, 3 = Bisexual, 4 = Pansexual, 5 = Heterosexual/Straight, 6 = Other [Write in]</span></span>
-<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a>demog<span class="sc">$</span>sx_ori <span class="ot">&lt;-</span> <span class="fu">recode</span>(demog<span class="sc">$</span>sx_ori, </span>
-<span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a>                       <span class="st">`</span><span class="at">1</span><span class="st">`</span> <span class="ot">=</span> <span class="st">&quot;Gay&quot;</span>,</span>
-<span id="cb44-4"><a href="#cb44-4" aria-hidden="true" tabindex="-1"></a>                       <span class="st">`</span><span class="at">2</span><span class="st">`</span> <span class="ot">=</span> <span class="st">&quot;Lesbian&quot;</span>,</span>
-<span id="cb44-5"><a href="#cb44-5" aria-hidden="true" tabindex="-1"></a>                       <span class="st">`</span><span class="at">3</span><span class="st">`</span> <span class="ot">=</span> <span class="st">&quot;Bisexual&quot;</span>, </span>
-<span id="cb44-6"><a href="#cb44-6" aria-hidden="true" tabindex="-1"></a>                       <span class="st">`</span><span class="at">4</span><span class="st">`</span> <span class="ot">=</span> <span class="st">&quot;Pansexual&quot;</span>,</span>
-<span id="cb44-7"><a href="#cb44-7" aria-hidden="true" tabindex="-1"></a>                       <span class="st">`</span><span class="at">5</span><span class="st">`</span> <span class="ot">=</span> <span class="st">&quot;Heterosexual&quot;</span>,</span>
-<span id="cb44-8"><a href="#cb44-8" aria-hidden="true" tabindex="-1"></a>                       <span class="st">`</span><span class="at">6</span><span class="st">`</span> <span class="ot">=</span> <span class="st">&quot;Other&quot;</span>)</span>
-<span id="cb44-9"><a href="#cb44-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-10"><a href="#cb44-10" aria-hidden="true" tabindex="-1"></a><span class="fu">prop_tab</span>(demog, sx_ori)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1 = Gay, 2 = Lesbian, 3 = Bisexual, 4 = Pansexual, 5 = Heterosexual/Straight, 6 = Other [Write in]</span></span>
+<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a>demog<span class="sc">$</span>sx_ori <span class="ot">&lt;-</span> <span class="fu">recode</span>(demog<span class="sc">$</span>sx_ori, </span>
+<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a>                       <span class="st">`</span><span class="at">1</span><span class="st">`</span> <span class="ot">=</span> <span class="st">&quot;Gay&quot;</span>,</span>
+<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a>                       <span class="st">`</span><span class="at">2</span><span class="st">`</span> <span class="ot">=</span> <span class="st">&quot;Lesbian&quot;</span>,</span>
+<span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a>                       <span class="st">`</span><span class="at">3</span><span class="st">`</span> <span class="ot">=</span> <span class="st">&quot;Bisexual&quot;</span>, </span>
+<span id="cb43-6"><a href="#cb43-6" aria-hidden="true" tabindex="-1"></a>                       <span class="st">`</span><span class="at">4</span><span class="st">`</span> <span class="ot">=</span> <span class="st">&quot;Pansexual&quot;</span>,</span>
+<span id="cb43-7"><a href="#cb43-7" aria-hidden="true" tabindex="-1"></a>                       <span class="st">`</span><span class="at">5</span><span class="st">`</span> <span class="ot">=</span> <span class="st">&quot;Heterosexual&quot;</span>,</span>
+<span id="cb43-8"><a href="#cb43-8" aria-hidden="true" tabindex="-1"></a>                       <span class="st">`</span><span class="at">6</span><span class="st">`</span> <span class="ot">=</span> <span class="st">&quot;Other&quot;</span>)</span>
+<span id="cb43-9"><a href="#cb43-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-10"><a href="#cb43-10" aria-hidden="true" tabindex="-1"></a><span class="fu">prop_tab</span>(demog, sx_ori)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 6 × 3
   sx_ori           n    prop
@@ -3563,33 +3555,33 @@ $ fgen      &lt;dbl&gt; 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0,
 </div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb46"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(demog<span class="sc">$</span>dem12)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb45"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(demog<span class="sc">$</span>dem12)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code> num [1:254] 2 49 5 1 145 7 45 4 345 34 ...</code></pre>
 </div>
 </div>
 <p>Question: Do you participate in any of the following activities (check all that apply):</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb48"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a><span class="co"># These question is a multiple choice question, and each number represent an activity option.</span></span>
-<span id="cb48-2"><a href="#cb48-2" aria-hidden="true" tabindex="-1"></a><span class="do">## Select all that apply: 1=Athletics; 2=Club sports; 3=Greek life; 4=Registered student organizations; 5=Volunteer work; 6=Associated students of Madison; 7=Work-study; 8=Research Involvement; 9=Religious-affiliated student organizations</span></span>
-<span id="cb48-3"><a href="#cb48-3" aria-hidden="true" tabindex="-1"></a>demog<span class="sc">$</span>dem12 <span class="ot">&lt;-</span> <span class="fu">sapply</span>(<span class="fu">strsplit</span>(<span class="fu">as.character</span>(demog<span class="sc">$</span>dem12), <span class="st">&quot;&quot;</span>), <span class="cf">function</span>(x) <span class="fu">paste</span>(x, <span class="at">collapse =</span> <span class="st">&quot;,&quot;</span>))</span>
-<span id="cb48-4"><a href="#cb48-4" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(demog<span class="sc">$</span>dem12)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb47"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="co"># These question is a multiple choice question, and each number represent an activity option.</span></span>
+<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a><span class="do">## Select all that apply: 1=Athletics; 2=Club sports; 3=Greek life; 4=Registered student organizations; 5=Volunteer work; 6=Associated students of Madison; 7=Work-study; 8=Research Involvement; 9=Religious-affiliated student organizations</span></span>
+<span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a>demog<span class="sc">$</span>dem12 <span class="ot">&lt;-</span> <span class="fu">sapply</span>(<span class="fu">strsplit</span>(<span class="fu">as.character</span>(demog<span class="sc">$</span>dem12), <span class="st">&quot;&quot;</span>), <span class="cf">function</span>(x) <span class="fu">paste</span>(x, <span class="at">collapse =</span> <span class="st">&quot;,&quot;</span>))</span>
+<span id="cb47-4"><a href="#cb47-4" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(demog<span class="sc">$</span>dem12)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code> chr [1:254] &quot;2&quot; &quot;4,9&quot; &quot;5&quot; &quot;1&quot; &quot;1,4,5&quot; &quot;7&quot; &quot;4,5&quot; &quot;4&quot; &quot;3,4,5&quot; &quot;3,4&quot; &quot;4,5&quot; ...</code></pre>
 </div>
 </div>
 <p>Count number of acvitity were select in question dem12.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb50"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a>demog<span class="sc">$</span>num_activity <span class="ot">&lt;-</span> <span class="fu">str_count</span>(demog<span class="sc">$</span>dem12, <span class="st">&quot;</span><span class="sc">\\</span><span class="st">d+&quot;</span>)</span>
-<span id="cb50-2"><a href="#cb50-2" aria-hidden="true" tabindex="-1"></a><span class="fu">range</span>(demog<span class="sc">$</span>num_activity)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb49"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a>demog<span class="sc">$</span>num_activity <span class="ot">&lt;-</span> <span class="fu">str_count</span>(demog<span class="sc">$</span>dem12, <span class="st">&quot;</span><span class="sc">\\</span><span class="st">d+&quot;</span>)</span>
+<span id="cb49-2"><a href="#cb49-2" aria-hidden="true" tabindex="-1"></a><span class="fu">range</span>(demog<span class="sc">$</span>num_activity)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] 0 5</code></pre>
 </div>
 </div>
 <p>Do you receive financial aid?</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb52"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1 = Yes, 0 = No</span></span>
-<span id="cb52-2"><a href="#cb52-2" aria-hidden="true" tabindex="-1"></a><span class="fu">prop_tab</span>(demog, f_aid)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb51"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1 = Yes, 0 = No</span></span>
+<span id="cb51-2"><a href="#cb51-2" aria-hidden="true" tabindex="-1"></a><span class="fu">prop_tab</span>(demog, f_aid)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 2 × 3
   f_aid     n  prop
@@ -3600,8 +3592,8 @@ $ fgen      &lt;dbl&gt; 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0,
 </div>
 <p>Have you ever received a Pell grant?</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb54"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1 = Yes, 0 = No</span></span>
-<span id="cb54-2"><a href="#cb54-2" aria-hidden="true" tabindex="-1"></a><span class="fu">prop_tab</span>(demog, p_grnt)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb53"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1 = Yes, 0 = No</span></span>
+<span id="cb53-2"><a href="#cb53-2" aria-hidden="true" tabindex="-1"></a><span class="fu">prop_tab</span>(demog, p_grnt)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 2 × 3
   p_grnt     n  prop
@@ -3612,8 +3604,8 @@ $ fgen      &lt;dbl&gt; 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0,
 </div>
 <p>Do you work for pay during the school year?</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb56"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1 = Yes, 0 = No</span></span>
-<span id="cb56-2"><a href="#cb56-2" aria-hidden="true" tabindex="-1"></a><span class="fu">prop_tab</span>(demog, job)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb55"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb55-1"><a href="#cb55-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1 = Yes, 0 = No</span></span>
+<span id="cb55-2"><a href="#cb55-2" aria-hidden="true" tabindex="-1"></a><span class="fu">prop_tab</span>(demog, job)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 2 × 3
     job     n  prop
@@ -3624,8 +3616,8 @@ $ fgen      &lt;dbl&gt; 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0,
 </div>
 <p>Since you have been a student at UW-Madison, how often have you had difficulty paying for basic necessities like food, clothing, or rent?</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb58"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1 = Never, 2 = Rarely, 3 = Sometimes, 4 = Often, 5 = All the time</span></span>
-<span id="cb58-2"><a href="#cb58-2" aria-hidden="true" tabindex="-1"></a><span class="fu">prop_tab</span>(demog,f_need)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb57"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb57-1"><a href="#cb57-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1 = Never, 2 = Rarely, 3 = Sometimes, 4 = Often, 5 = All the time</span></span>
+<span id="cb57-2"><a href="#cb57-2" aria-hidden="true" tabindex="-1"></a><span class="fu">prop_tab</span>(demog,f_need)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 5 × 3
   f_need     n   prop
@@ -3639,8 +3631,8 @@ $ fgen      &lt;dbl&gt; 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0,
 </div>
 <p>Would you consider yourself a first-gen college student (meaning your parents never completed a 4-year college or university degree)?</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb60"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb60-1"><a href="#cb60-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1 = Yes, 0 = No, 3 = Not sure</span></span>
-<span id="cb60-2"><a href="#cb60-2" aria-hidden="true" tabindex="-1"></a><span class="fu">prop_tab</span>(demog, fgen)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb59"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb59-1"><a href="#cb59-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1 = Yes, 0 = No, 3 = Not sure</span></span>
+<span id="cb59-2"><a href="#cb59-2" aria-hidden="true" tabindex="-1"></a><span class="fu">prop_tab</span>(demog, fgen)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 3 × 3
    fgen     n    prop
@@ -3651,12 +3643,12 @@ $ fgen      &lt;dbl&gt; 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0,
 </div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb62"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb62-1"><a href="#cb62-1" aria-hidden="true" tabindex="-1"></a>demog <span class="ot">&lt;-</span> demog <span class="sc">%&gt;%</span> <span class="fu">select</span>(random_id, age, res, sch_yr, race, </span>
-<span id="cb62-2"><a href="#cb62-2" aria-hidden="true" tabindex="-1"></a>                          mult, race_txt, eth, dis1, dis_dev,</span>
-<span id="cb62-3"><a href="#cb62-3" aria-hidden="true" tabindex="-1"></a>                          dis_lrn, dis_sen, dis_mob, dis_psy, dis_unl, </span>
-<span id="cb62-4"><a href="#cb62-4" aria-hidden="true" tabindex="-1"></a>                          dis_txt, dis_ill, gend, trans, sx_ori,</span>
-<span id="cb62-5"><a href="#cb62-5" aria-hidden="true" tabindex="-1"></a>                          dem12, num_activity, <span class="fu">everything</span>())</span>
-<span id="cb62-6"><a href="#cb62-6" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(demog)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb61"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb61-1"><a href="#cb61-1" aria-hidden="true" tabindex="-1"></a>demog <span class="ot">&lt;-</span> demog <span class="sc">%&gt;%</span> <span class="fu">select</span>(random_id, age, res, sch_yr, race, </span>
+<span id="cb61-2"><a href="#cb61-2" aria-hidden="true" tabindex="-1"></a>                          mult, race_txt, eth, dis1, dis_dev,</span>
+<span id="cb61-3"><a href="#cb61-3" aria-hidden="true" tabindex="-1"></a>                          dis_lrn, dis_sen, dis_mob, dis_psy, dis_unl, </span>
+<span id="cb61-4"><a href="#cb61-4" aria-hidden="true" tabindex="-1"></a>                          dis_txt, dis_ill, gend, trans, sx_ori,</span>
+<span id="cb61-5"><a href="#cb61-5" aria-hidden="true" tabindex="-1"></a>                          dem12, num_activity, <span class="fu">everything</span>())</span>
+<span id="cb61-6"><a href="#cb61-6" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(demog)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Rows: 254
 Columns: 27
@@ -3694,7 +3686,7 @@ $ fgen         &lt;dbl&gt; 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0,
 <section id="write-csv" class="level2">
 <h2 class="anchored" data-anchor-id="write-csv">Write CSV</h2>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb64"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb64-1"><a href="#cb64-1" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(demog, <span class="st">&quot;/Users/yan/Desktop/sample_code/ESM/2_demograpgic/demog_data.csv&quot;</span>, <span class="at">row.names =</span> <span class="cn">FALSE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb63"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb63-1"><a href="#cb63-1" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(demog, <span class="st">&quot;/Users/yan/Desktop/sample_code/ESM/2_demograpgic/demog_data.csv&quot;</span>, <span class="at">row.names =</span> <span class="cn">FALSE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 

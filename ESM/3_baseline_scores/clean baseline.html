@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Yan Zhu">
-<meta name="dcterms.date" content="2024-05-24">
+<meta name="dcterms.date" content="2024-06-06">
 
 <title>Clean Baseline Scores</title>
 <style>
@@ -3108,7 +3108,7 @@ vertical-align: -.125em;
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">May 24, 2024</p>
+      <p class="date">June 6, 2024</p>
     </div>
   </div>
   
@@ -3146,9 +3146,11 @@ The following objects are masked from &#39;package:ggplot2&#39;:
 
 
 [conflicted] Will prefer dplyr::filter over any other package.
-[conflicted] Will prefer dplyr::lag over any other package.
-[conflicted] Will prefer stats::chisq.test over any other package.
-[conflicted] Will prefer stats::fisher.test over any other package.
+[conflicted] Will prefer ggplot2::`%+%` over any other package.
+[conflicted] Will prefer ggplot2::alpha over any other package.
+[conflicted] Will prefer Matrix::expand over any other package.
+[conflicted] Will prefer Matrix::pack over any other package.
+[conflicted] Will prefer Matrix::unpack over any other package.
 Loading required package: Matrix
 
 
@@ -3188,7 +3190,7 @@ The following objects are masked from &#39;package:tidyr&#39;:
 </ul>
 <p><a href="https://www2.psych.ubc.ca/~klonsky/publications/DERS18.pdf">Victor, S. E., &amp; Klonsky, E. D. (2016). Validation of a brief version of the difficulties in emotion regulation scale (DERS-18) in five samples. Journal of psychopathology and Behavioral Assessment, 38(4), 582-589.</a></p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>ders <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">&quot;/Users/yan/Desktop/sample_code/ESM/1_anonymization/anonymous_baseline.csv&quot;</span>) <span class="sc">%&gt;%</span> </span>
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>ders <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">&quot;/Users/yan/Desktop/sample_code/ESM/1_anonymization/anonymous_baseline.csv&quot;</span>, <span class="at">show_col_types =</span> <span class="cn">FALSE</span>) <span class="sc">%&gt;%</span> </span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(random_id, ders1, ders2, ders3, ders4, ders5, ders6, ders7, ders8, ders9, ders10, ders11, ders12, ders13, ders14, ders15, ders16, ders17, ders18)</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="fu">describe</span>(ders)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>

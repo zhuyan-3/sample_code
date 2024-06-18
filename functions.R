@@ -3,6 +3,7 @@
 ###############################################################################
 # conflicted ##################################################################
 library(conflicted)
+conflicts_prefer(dplyr::filter)
 
 ### %+% 函数：
 # 在psych包中，%+%函数是用于在创建因子分析模型时指定因子的方法之一。
@@ -64,6 +65,23 @@ prop_tab <- function(df, var, sort = FALSE) {
 prop_tab2 <- function(df, var1, var2) {
   df |>  janitor::tabyl({{ var1 }}, {{ var2 }})
 } 
+
+
+################################################################################
+# find single valued columns ################################################################
+# 定义一个函数，用于查找并打印单一值的列名
+find_single_valued_columns <- function(data) {
+  single_valued_columns <- sapply(data, function(col) length(unique(col)) == 1)
+  
+  # 打印单一值的列名
+  single_valued_col_names <- names(single_valued_columns[single_valued_columns])
+  if(length(single_valued_col_names) > 0) {
+    cat("Single-valued columns:\n")
+    print(single_valued_col_names)
+  } else {
+    cat("No single-valued columns found.\n")
+  }
+}
 
 ################################################################################
 # figStripChart ################################################################

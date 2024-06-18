@@ -29,6 +29,8 @@ This code file is used for matching IDs and data anonymization to ensure data pr
 
 ## Setup
 ```{r setup, echo=TRUE, results='hide', message=FALSE, warning=FALSE}
+source("/Users/yan/Desktop/sample_code/functions.R")
+
 library(tidyverse)
 library(dplyr)
 library(skimr)
@@ -37,11 +39,11 @@ library(readxl)
 ```
 
 ```{r read_data, echo=TRUE, results='hide', message=FALSE, warning=FALSE}
-baseline <- read_csv("/Users/yan/Desktop/sample_code/ESM/0_raw data/esm_bline_feb29.csv") %>%
+baseline <- read_csv("/Users/yan/Desktop/sample_code/ESM/0_raw data/esm_bline_feb29.csv", show_col_types = FALSE) %>%
   select( -new_random_id) %>% 
   clean_names()
 
-daily <- read_csv("/Users/yan/Desktop/sample_code/ESM/0_raw data/esm_diary_raw_data.csv") %>%
+daily <- read_csv("/Users/yan/Desktop/sample_code/ESM/0_raw data/esm_diary_raw_data.csv", show_col_types = FALSE) %>%
   clean_names()
 daily <- daily[-c(1, 2), ]
 
@@ -203,24 +205,23 @@ baseline <- baseline %>%
 Next, I would like to do a little cleaning in Baseline data. 
 ```{r}
 # Removing some unnecessary columns.
-single_valued_columns <- sapply(baseline, function(col) length(unique(col)) == 1)
-
-cat("Variables with only one unique value:\n", names(baseline[single_valued_columns]))
+find_single_valued_columns(baseline)
 ```
 
 ```{r}
-baseline %>% select(sc_18, sc_au, addcode) %>% head()
+baseline %>% select(consent, sc_18, sc_au, addcode) %>% head()
 ```
 
 Deleting list below:
 
+- consent: 1 = Yes (Agree to continue with the survey.)
 - sc_18: 1 = Yes (Are you at least 18 years old?)
 - sc_au: 1 = Yes (Have you consumed any alcohol in the last 12 months?)
 - addcode: All missing data, not helpful.
 
 sc_18 and sc_au are 2 mandatory questions have to answer, and the answer have to be 1 to continue the survey.
 ```{r}
-baseline <- baseline %>% select(-sc_18, -sc_au, -addcode)
+baseline <- baseline %>% select(-consent, -sc_18, -sc_au, -addcode)
 ```
 
 
@@ -233,9 +234,8 @@ baseline <- baseline[baseline$random_id %in% daily$random_id, ]
 
 ### delete columns
 ```{r}
-# Checks each column in the 'raw' data frame to determine if it contains only a single unique value
-single_valued_columns <- sapply(daily, function(col) length(unique(col)) == 1)
-cat("Variables with only one unique value:\n", names(daily[single_valued_columns]))
+# find out columns with only one unique value
+find_single_valued_columns(daily)
 ```
 
 ```{r}
@@ -245,6 +245,7 @@ cat("Variables with only one unique value:\n", names(daily[single_valued_columns
 ```
 
 ```{r}
+# delete columns with only one unique value
 daily <- daily %>% 
   select(-recipient_last_name, -recipient_first_name, -recipient_email, -external_reference, -distribution_channel, -user_language, -q186_8_text, -psb15_10_text, -psb15_tried_10_text, -psb16_10_text, -psb16_tried_10_text, -osbb7_5_text, -osbb10_11_10_text, -osbb15_5_text, -ssab6_7_10_text, -ssid, -sms, -sig, -r_date, -time, -rt, -rid, -response_id) 
 ```
@@ -455,6 +456,22 @@ daily <- daily %>%
     )
   ))
 
+
+daily <- daily %>%
+  mutate(across(
+    c(na1_s, na2_s, na3_s, na4_s, na5_s,
+      na1_o, na2_o, na3_o, na4_o, na5_o,
+      pa1_s, pa2_s, pa1_o, pa2_o),
+    ~ case_when(
+      . == "1" ~ 0, 
+      . == "2" ~ 1, 
+      . == "3" ~ 2,
+      . == "4" ~ 3,
+      . == "5" ~ 4,
+      TRUE ~ as.numeric(.)
+    )
+  ))
+
 # Specific handling for "Not Sure" and "Wasn't Needed"
 daily <- daily %>%
   mutate(across(
@@ -489,7 +506,10 @@ daily <- daily %>%
 # Check recoding
 daily %>% select(au_pg, au_dg, au_bib, au_fib, cub1, cub2, cub3, cub4, cub5, cub6,
              psb3, psb5, psb5a, er1_p, er2_p, er3_p, er4_p, osb4, osb5, osb8, pss, er1_o, 
-             er2_o, er3_o, er4_o, ssb2, er1_s, er2_s, er3_s, er4_s, dub5, dub6) %>% map(tabyl)
+             er2_o, er3_o, er4_o, ssb2, er1_s, er2_s, er3_s, er4_s, dub5, dub6,
+             na1_s, na2_s, na3_s, na4_s, na5_s,
+             na1_o, na2_o, na3_o, na4_o, na5_o,
+              pa1_s, pa2_s, pa1_o, pa2_o) %>% map(tabyl)
 
 ```
 

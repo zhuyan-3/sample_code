@@ -1,0 +1,286 @@
+---
+title: "LM with One Predictor"
+author: "Yan Zhu"
+date: "2023-10-02"
+output: 
+  html_document:
+    toc: yes
+    toc_float: yes
+    theme: cerulean
+    number_sections: no
+---
+# Set Up
+```{r setup, include=FALSE}
+library(psych)
+library(car)
+library(tidyverse)
+library(effectsize)
+library(tinytex)
+library(readxl)
+library(skimr)
+library(dplyr)
+library(knitr)
+library(kableExtra)
+
+source("/Users/yan/Desktop/sample_code/functions.R")
+```
+
+## Read in the data
+Read and convert variable names to snake case, and get summary statistics for each of the columns included in the dataframe. 
+```{r, warning=FALSE}
+d_raw <- read_excel("/Users/yan/Desktop/sample_code/Design and Analysis of Psychological Experiments/Data/Week_4_data.xlsx", sheet = 1) %>%
+  janitor::clean_names()
+
+summary(d_raw)
+```
+
+*hmmm… that’s odd, some of my variables have minimum and maximum values of -5000 and 5000 and means greater than the highest possible value on the scale. I should probably find out what’s happening. It also looks like some of my variables are character class even though I expected them to be numeric. I will have to change that before I work with those variables.*
+
+## Clean Data
+
+**Removing rows**
+
+I have looked at my d_raw dataframe and sorted from low to high and then high to low. It seems there is just 1 participant that has values of 5000 and -5000 for certain variables. I don’t know what is happening with them, so I will remove them from the data file. I will use bracket notation to remove this participant.
+```{r}
+d_raw <- d_raw[-(id = 581),]
+```
+
+**Remove Variables**
+
+Notice that there is a variable that we do not need for these analyses (labeled AnnoyingVariable). Using bracket notation, remove this variable while also putting the remaining variables (columns) in an order that makes sense to you. Run a command that shows the names of the variables that are left.
+```{r}
+d <- d_raw[, c("id", "cons1", "cons2", "cons3", "cons4", "cons5", "cons6", "cons7", 
+               "cons8", "cons9", "cons10", "cons11", "cons12", "cons13", "cons14",
+               "cons15", "social_media", "anx1", "anx2", "anx3", "anx4", "anx5", "age",
+               "gender", "anes_0", "anes_rep", "anes_ind", "anes_dem")]
+names(d)
+```
+
+*I arranged my variables to start with participant id, then the outcome variable, then the predictors, and then the demographics. I also rearranged the anes items so that the three columns I need to combine are arranged corresponding to their numeric values.*
+
+# Data Preparation
+Prepare my two predictor variables and my outcome variable for data analysis. To do so, create composite scores for participant’s belief in conspiracy theory scores and anxiety scores. Do not include any participant in a composite score if they have missed more than 1/3 of the response items for a variable. While it will not affect my interpretation of b1, later in the homework we will ask you to interpret b0. For the sake of easier interpretation of b0, recode social media use age -0.5 (does not use social media) and 0.5 (uses social media).
+```{r}
+### outcome: Belief in conspiracies
+cons <- paste0("cons", c(1:15))
+# psych::alpha(d[, cons])
+d$cons_m <- varScore(d, 
+                     Forward = cons, 
+                     Reverse = NULL, 
+                     Range = c(1, 5), 
+                     Prorate = TRUE, 
+                     MaxMiss = 1/3) /15
+
+
+### Predictor: Anxiety
+# psych::alpha(d[, c('anx1', 'anx2', 'anx3')], keys = c('anx4', 'anx5'))
+d$anx_m <- varScore(d,                       
+                   Forward = c('anx1', 'anx2', 'anx3'),
+                   Reverse = c('anx4', 'anx5'),
+                   Range=c(1, 5),               
+                   MaxMiss=1/3,
+                   Prorate=T) / 5 
+
+
+### Predictor: Social media
+d$social_media_c <- dplyr::recode(d$social_media, "1" = -0.5, "2" = 0.5)
+```
+
+Make two quick and dirty plots exploring our main questions: Do anxiety or social media predict the belief in conspiracy theories?.
+```{r}
+plot(d$social_media_c, d$cons_m) + abline(lm(d$cons_m ~ d$social_media_c))
+```
+*Not the most informative graph, but I can tell any relationship is weak*
+
+
+```{r}
+plot(d$anx_m, d$cons_m) + abline(lm(d$cons_m ~ d$anx_m))
+```
+
+*Here we see a fairly strong positive relationship between anxiety and belief in conspiracies*
+
+# linear model 1
+Fit a linear model to determine if anxiety predicts the belief in conspiracy theories. Report the corresponding (b1) parameter estimate, F-statistic, df, p-value, and Partial eta square. Provide a 95% confidence interval for the (b1) parameter estimate. 
+*b1 = 0.2122; F(1,1926) = 70.54, p < 0.001, partial eta-square = 0.04；95% confidence: [0.1626642, 0.2617723]*
+```{r}
+m1 <- lm(cons_m ~ anx_m, d)
+
+(mod_sum = summary(m1)) # b0 = 2.23, b1 = 0.21, p-value < 0.001, F(1,1926) = 70.54
+
+mod_sum$coefficients[,"t value"]^2 # F = 70.54
+
+car::Anova(m1, type = 3) %>% eta_squared()
+# The results indicate that anx_m explains about 4% of the variance in cons_m. 
+# This is considered a small to moderate effect size. 
+
+confint(m1) # 95% confidence: [0.1626642, 0.2617723]
+```
+
+*b1=0.21,F(1,1926)=70.54,p<.001,η2p=0.04, 95% confidence interval: [0.16, 0.26]*
+
+## A publication-quality graph 
+
+That depicts the model that I fit(m1 <- lm(cons_m ~ anx_m, d)). 
+```{r, warning=FALSE}
+d_graph <- data.frame(anx_m = seq(1, 5, length = 100))
+d_graph <- ggplotPredict(m1, d_graph)
+
+p1 <- ggplot(data = d, aes(x = anx_m, y = cons_m)) +
+  geom_point() +  
+  geom_smooth(data = d_graph, aes(ymin = CILo, ymax = CIHi, x = anx_m, y =Predicted),
+              stat = "identity", color="red") +  
+  theme_bw(base_size = 14) + 
+  labs(x = 'Anxiety\n\n(1 = Low; 5= High)', y = 'Belief in Conspiracy Theories\n\n(1 = Low; 5 = High)\n')
+
+p1
+```
+
+# linear model 2
+
+Fit a linear model to determine if social media use predicts the belief in conspiracy theories. 
+
+```{r}
+m2 <- lm(cons_m ~ social_media_c, d)
+
+(m2_sum = summary(m2)) # b1 = -0.0065, p-value = 0.89, F(1,1926) = 0.019
+
+m2_sum$coefficients[,"t value"]^2 # F = 0.019
+
+confint(m2) # 95% confidence: [0.1626642 - 0.2617723]
+
+car::Anova(m2, type = 3) %>% eta_squared()
+```
+
+*b1=−0.01,F(1,1926)=0.02,p=.89, 95% confidence interval: [-0.09, 0.09]*
+
+Report np2 (PRE) along with its interpretation in a sentence to describe the effect of social media use on the belief in conspiracy theories. 
+
+```{r}
+car::Anova(m2, type = 3) %>% eta_squared()    # partial eta-square = 9.87e-06 
+```
+*ηp^2=0.00000987. Social media usage explains 0.001% (or essentially none) of the variance in the belief of conspiracy theories. When reporting this, I will round to 0.00*
+
+From the output of the linear model *(m2 <- lm(cons_m ~ social_media_c, data = d))*, interpret the “intercept” or b0 coefficient. What does it mean in this sample? What does its corresponding p value mean?
+
+*Our regression model predicts that participants in a theoretical group that is halfway between using and not using social media, on average, will have a belief in conspiracy theories score of 2.82. The p value shows that the likelihood of sampling data with a mean of 2.82 [or more extreme], assuming that the null hypothesis is true, is extremely small. We thus reject the null hypothesis and conclude that people in a theoretical condition between using and not using social media do not have a score of 0 on the belief in conspiracy theories scale.*
+
+## A publication-quality graph
+That depicts the model you fit in *(m2 <- lm(cons_m ~ social_media_c, data = d))*. 
+```{r, warning=FALSE}
+d_graph <- data.frame(social_media_c = c(1, 2))
+d_graph <- ggplotPredict(m2, d_graph)
+d_graph$social_media <- dplyr::recode(d_graph$social_media, 
+                                   "1" = "No Social Media", "2" = "Uses Socail Media")
+
+# Step 3 - format the graph
+p2 <- ggplot(d_graph, aes(x = social_media, y = Predicted, fill = as.factor(social_media))) +
+  geom_bar(stat = "identity", width = .4, ) +
+  geom_errorbar(aes(ymin = CILo, ymax = CIHi, width = .3)) +
+  geom_point(data = d, aes(x = social_media, y = cons_m),
+             position = position_jitter(width = .15, height = 0),
+             alpha = .15) +
+  labs(x = "Social Media Use", y = "Belief in Conspiracy Theories\n\n(1 = Low; 5 = High)\n") + 
+  theme_bw() + 
+  theme(legend.position = "none") +
+  coord_cartesian(ylim = c(1, 5))
+
+p2
+```
+
+# Result Summary
+
+- We regressed scores representing participants’ belief in conspiracy theories on their anxiety scores. We found that as anxiety increases, so too does the likelihood that they believe conspiracy theories, b1=0.21,F(1,1926)=70.54,p<.001,η2p=0.04, 95% confidence interval: [0.16, 0.26]. In other words, anxiety predicts participants’ belief in conspiracy theories.
+
+- Next, we regressed scores representing participants’ belief in conspiracy theories on a dichotomous predictor indicating whether participants do or do not use social media, b1=−0.01,F(1,1926)=0.02,p=.89,η2p=0.00000987, 95% confidence interval: [-0.09, 0.09]. In other words, we found no relationship between social media use and the belief in conspiracy theories.
+
+
+# Other Analysis
+
+## Demographic
+
+Provide statistics for the demographic variables. 
+
+For age, report a mean and standard deviation. 
+```{r, warning=FALSE}
+d$age_num <- as.numeric(d$age)
+
+# Generate descriptive statistics
+desc <- describe(d$age_num)
+
+# Create a descriptive statistics frame
+desc_table <- data.frame(
+  Statistics = c("Number of samples (n)", "mean (mean)", "standard deviation (sd)", "median (median)", "trimmed mean (trimmed)", "median absolute deviation (mad)", "minimum value (min)", "maximum value (max)", "range (range)", "skewness (skew)", "kurtosis (kurtosis)", "standard error (se)"),
+  Value = round(c(desc$n, desc$mean, desc$sd, desc$median, desc$trimmed, desc$mad, desc$min, desc$max, desc$range, desc$skew, desc$kurtosis, desc$se), 2)
+)
+
+# 使用kableExtra格式化表格
+desc_table %>%
+  kbl(col.names = c("Statistics", "Value"), caption = "Descriptive statistics of sample age") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+```
+
+For gender and political affiliation, identify the number and percentage of participants in each demographic category.
+```{r}
+d$gender_ch <- dplyr::recode(d$gender,
+                             "1" = "Female",
+                             "2" = "Male",
+                             "3" = "Another identity",
+                             "4" = "Prefer not to say")
+
+# number of participants
+(gender_table <- table(d$gender_ch))
+```
+
+```{r}
+# percentage of participants
+prop_tab(d, gender_ch)
+```
+
+Create a table in R which gives the average age for each gender group.
+```{r}
+describeBy(d$age_num, d$gender_ch, mat = T)
+```
+
+## Political affiliation
+Create a composite score for political affiliation.
+```{r}
+d %>% select(anes_rep, anes_ind, anes_dem) %>% 
+  glimpse()
+
+# First, I will turn all of my NAs into 0s
+# d$anes_rep[is.na(d$anes_rep)] <- 0
+# d$anes_ind[is.na(d$anes_ind)] <- 0
+# d$anes_dem[is.na(d$anes_dem)] <- 0
+d$anes_rep[d$anes_rep == "NA"] <- 0
+d$anes_ind[d$anes_ind == "NA"] <- 0
+d$anes_dem[d$anes_dem == "NA"] <- 0
+
+# Second, I will change it to numeric versions of my variables
+d$anes_rep <- as.numeric(d$anes_rep)
+d$anes_ind <- as.numeric(d$anes_ind)
+d$anes_dem <- as.numeric(d$anes_dem)
+
+# Third, I will sum all of my responses
+d$anes_c <- d$anes_rep + d$anes_ind + d$anes_dem
+
+glimpse(d$anes_c)
+```
+
+```{r}
+# we have some NAs that we still need to account for
+d$anes_ch <- dplyr::recode(d$anes_c,
+                             "0" = "NA",
+                             "1" = "Strong Republican",
+                             "2" = "Weak Republican",
+                             "3" = "Republican Leaning Independent",
+                             "4" = "Independent",
+                             "5" = "Democratic Leaning Independent",
+                             "6" = "Weak Democrat",
+                             "7" = "Strong Democrat")
+
+# Number of participants
+prop_tab(d, anes_ch)
+```
+
+
+
