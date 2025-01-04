@@ -1,0 +1,272 @@
+---
+title: "Advanced Topics in Mediation"
+author: "Yan Zhu"
+date: "2025-01-04"
+output: 
+  html_document:
+    toc: yes
+    toc_float: yes
+    theme: cerulean
+    number_sections: no
+---
+
+# PART I: Conceptual Questions
+
+## 1.	What do Judd and colleagues recommend in terms of reporting “simple” and “main” effects? What is their justification? Does Jaccard (2003) agree or disagree with this perspective?
+
+udd and colleagues (2013) argue that the term “main effect” is usually applied incorrectly when interpreting regression coefficients from interactive models. They note that while this term is meant to convey the idea that a variable has an effect across all levels of another variable, that isn’t actually what the test of a single parameter demonstrates. Rather, in an interactive model with centered variables, a coefficient for a given parameter represents the effect of that variable for a specific kind of participant: one who is average with regard to the other predictor variable(s). Thus, they argue that the term “simple effect” should be used in these situations, just as it is when we examine effects at specific levels of the predictor variables. Jaccard (2003) takes the same perspective as Judd and colleagues.
+
+## 2.	A researcher is studying population density maps. She presents different maps to participants to indicate how many people live in each region of a made-up country. She predicts that presenting the map on a white background rather than a black background will predict higher estimates of the country’s population. She also examines whether a map that has borders (versus no boarders) leads to higher estimates of the country’s population than a map that does not have borders.
+
+*Please refer to the following table, representing participants’ group means for estimated population density (1 = 1,000,000 people):*
+
+
+a. What is(are) the simple effect(s) for background?
+
+- Simple effects: -1 (million) and -2 (million)
+
+b. What is(are) the simple effect(s) for borders?
+
+- Simple effects: 2 (million) and 1 (million)
+
+c. What is(are) the main effect(s) for background?
+
+- Main effect: -1.5 (million)
+
+d. What is(are) the main effect(s) for borders?
+
+- Main effect: 1.5 (million)
+
+e. What is(are) the grand mean(s) for the present study?
+- Grand mean: 5.25 (million)
+
+# PART II: ANCOVA
+```{r setup, include=FALSE}
+library(tidyverse)
+library(dplyr)
+library(car)
+library(psych)
+library(effectsize)
+library(ggplot2)
+library(janitor)
+library(GGally)
+
+source("/Users/yanzhu/Desktop/sample_code/functions.R")
+```
+
+## 1.	Read the data into R, convert names to snake case. Examine univariate and bivariate statistics (i.e., generate a correlation matrix between age, condition, produced_gesture, and performance). Note any significant correlations.
+
+*There is no significant correlations*
+```{r}
+d_a <- read.csv("/Users/yanzhu//Desktop/sample_code/Design and Analysis of Psychological Experiments/Data/gestureproduction.csv") %>% clean_names()
+describe(d_a)
+ggpairs(d_a, progress = FALSE)
+```
+
+## 2.	Center condition, produced_gesture, and age. Then, fit a new model that regresses performance on condition_c, produced_gesture_c, their interaction, and age_c (covariate).
+```{r}
+# Center
+d_a$condition_c <- dplyr::recode(d_a$condition,"without_gesture" = -.5, 
+                                 "with_gesture" = .5)
+d_a$produced_gesture_c <- dplyr::recode(d_a$produced_gesture,"0" = -.5, 
+                                 "1" = .5)
+d_a$age_c <- d_a$age - mean(d_a$age, na.rm = T)
+
+# Model
+m <- lm(performance ~ condition_c * produced_gesture_c + age_c, data = d_a)
+summary(m)
+```
+
+```{r}
+d_a %>% 
+  select(performance, condition_c, produced_gesture_c, age_c) %>%
+  cor(use = "pairwise.complete")
+```
+
+
+## 3.	According to Yzerbyt et al. (2004), why is this not the correct analysis in this situation? Hint: think about the IVs.
+
+We have one measured and one manipulated variable. That means the model we just ran will be a biased estimate of the interaction effect. To correct for this bias, we must include an interactive term between the manipulated variable and the measured covariate.
+
+## 4.	Create a new model that Yzerbyt and colleagues (and we) would consider the be the correct way to analyze these data. Interpret each of the regression coefficients from this model individually.
+```{r}
+m2 <- lm(performance ~ condition_c * produced_gesture_c + condition_c * age_c, data = d_a)
+summary(m2)
+```
+
+b0 (Intercept):
+45.35% represents the predicted performance (percent correct) for participants who are average on all predictors (i.e., centered values of condition, gesture production, and age are 0).
+
+b1 (Effect of condition_c):
+-0.74 indicates the change in performance for each unit increase in condition_c, for participants who are average on produced gestures and age, controlling for all other predictors and interactions.
+
+b2 (Effect of produced_gesture_c):
+9.28 represents the change in performance for each unit increase in produced_gesture_c, for participants who are average on condition, controlling for all other predictors and interactions.
+
+b3 (Effect of age_c):
+0.36 represents the change in performance for each unit increase in age_c, for participants who are average on condition, controlling for all other predictors and interactions.
+
+b4 (Interaction between condition_c and produced_gesture_c):
+27.76 indicates how the effect of condition_c on performance changes for each unit increase in produced_gesture_c, controlling for all other predictors and interactions.
+
+b5 (Interaction between condition_c and age_c):
+0.94 indicates how the effect of condition_c on performance changes for each unit increase in age_c, controlling for all other predictors and interactions.
+
+## 5.	Make a publication-quality bar plot displaying these results, using the adjusted means when controlling for age. (Note: this means you should not plot the raw data)
+
+```{r}
+d_a$produced_gesture_str <- dplyr::recode(d_a$produced_gesture, "0" = "Did Not Produce Gestures", "1" = "Produced Gestures")
+d_a$condition_str <- dplyr::recode(d_a$condition_c, "-.5" = "No Gesture", ".5" = "Gesture")
+d_a$produced_gesture_str <- as.factor(d_a$produced_gesture_str)
+d_a$condition_str <- as.factor(d_a$condition_str)
+d_a$age_m <- mean(d_a$age)
+
+m_plot <- lm(performance ~ condition_str + produced_gesture_str +
+               condition_str:produced_gesture_str + age_m + condition_str:age_m, data = d_a)
+
+d_graph <- expand.grid(
+  condition_str = factor(c("No Gesture", "Gesture"), levels = levels(d_a$condition_str)),
+  produced_gesture_str = factor(c("Did Not Produce Gestures", "Produced Gestures"), levels = levels(d_a$produced_gesture_str)),
+  age_m = d_a$age_m
+)
+
+d_graph <- ggplotPredict(m_plot, d_graph)
+
+ggplot(d_graph, aes(x = condition_str, y = Predicted, fill = produced_gesture_str)) +
+  geom_bar(stat = "identity", position = position_dodge(.9)) +
+  geom_errorbar(aes(ymax = CIHi, ymin = CILo), position = position_dodge(.9), width = 0.25) +
+  theme_bw() +
+  theme(
+    legend.title = element_blank(),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank(),
+    axis.line = element_line()
+  ) +
+  scale_y_continuous(name = "Performance", limits = c(0, 110), expand = c(0, 0)) +
+  labs(x = "Condition")
+
+```
+
+
+
+# PART III: Polynomial Regression
+
+## 1.	Read the data into R, convert names to snake case, and remove the column labeled grp.
+```{r}
+d <- read_csv("/Users/yanzhu/Desktop/sample_code/Design and Analysis of Psychological Experiments/Data/population.csv",
+              show_col_types = FALSE) %>% janitor::clean_names()
+
+describe(d)
+```
+
+```{r}
+# Since grp is already centered
+d <- rename(d, grp_c = grp)
+```
+
+
+## 2.	Examine a quick and dirty scatterplot with percentage of population living in metropolitan on the x-axis and public expenditures on the y-axis. At a glance, does the distribution of datapoints resemble a linear or quadratic trend?
+
+*quadratic trend*
+```{r}
+plot(d$met, d$ex, main = "Scatterplot of Metropolitan Percentage vs. Public Expenditures",
+     xlab = "Percentage of Population Living in Metropolitan Areas",
+     ylab = "Public Expenditures")
+```
+
+## 3.	The researcher does not have an a priori prediction about the shape of the relationship between percentage of population living in metropolitan areas and public expenditures. Run a model in which the relation is assumed to be linear and a model in which the relation is assumed to be quadratic. Do not center your predictors yet. Based on the results, which model should she choose?
+
+*If we look at the model R2 we see that the quadratic model explains more variance (R2 = .17) than the linear model (R2 = .004). For this reason she should choose the quadratic model.*
+```{r}
+# 线性模型：线性关系
+m1 <- lm(ex ~ met, data = d)
+summary(m1)
+
+# 二次模型：非线性关系，包含平方项
+m2 <- lm(ex ~ met + I(met^2), data = d)
+summary(m2)
+
+```
+
+## 4.	Regardless of the model you chose, fit a new model with linear and quadratic trends for mean-centered metro population. Compare this model (parameter estimates, SE, overall model R2) to a model with only a linear predictor for metro population. Do any values change, and if so, why? 
+
+*In the linear model, the only thing that changes is the intercept. This is because the intercept is the predicted value of per capita spending for states with a “0” in the percentage of population living in metropolitan areas. For the uncentered variable, it is the estimate for states were no one lives in cities. For the centered variable, it is the estimate for states where 46.17% of the population lives in cities. *
+
+*In the quadratic model both the intercept and the estimate of the linear effect of the met variable change. The estimate changes for the same reasons described above. The linear effect changes because the quadratic term makes it so that the effect is not uniform across all the levels of met. Put another way, the effect of met depends on the level of met. Because of this, the linear effect is interpreted as the linear effect of met for participants with a score of 0 in met. When we change what this 0 is (i.e., we change the way this variable is coded) we change the effect.*
+
+```{r}
+# 中心化 met 变量
+d$met_c <- d$met - mean(d$met, na.rm = TRUE)
+
+# 拟合线性模型（中心化后）
+m1_c <- lm(ex ~ met_c, data = d)
+summary(m1_c)
+
+# 拟合二次模型（中心化后，包含平方项）
+m2_c <- lm(ex ~ met_c + I(met_c^2), data = d)
+summary(m2_c)
+
+# 查看未中心化二次模型的结果
+summary(m2)
+
+```
+
+## 5.	Make a figure in which the quadratic model is depicted. The figure should be publication quality with uncentered met (metro population).
+```{r}
+# 拟合二次回归模型
+m3_plot <- lm(ex ~ (met + I(met^2)), data = d)
+
+# 创建输入数据，用于预测
+d_input <- expand.grid(met = seq(min(d$met, na.rm = TRUE), max(d$met, na.rm = TRUE),
+                                 length = 100))
+
+# 生成预测值及置信区间
+d_predictions <- ggplotPredict(m3_plot, d_input)
+
+# 绘制散点图及回归曲线
+quad <- ggplot(data = d, aes(x = met, y = ex)) +
+  geom_point(color = 'black', alpha = .6) +
+  geom_smooth(data = d_predictions, aes(y = Predicted, ymin = CILo, ymax = CIHi),
+              stat = 'identity', color = 'red') +
+  theme_bw(base_size = 14) +
+  theme(
+    axis.line = element_line(color = "black"),
+    axis.ticks = element_line(color = "black"),
+    legend.position = c(.9, .9),
+    legend.background = element_blank()
+  ) +
+  scale_y_continuous(
+    name = "Per capita spending",
+    limits = c(0, 1500),
+    labels = scales::dollar
+  ) +
+  scale_x_continuous(
+    name = 'Percent of population living in metropolitan areas',
+    limits = c(0, 100)
+  )
+quad
+
+
+```
+
+## 6.	What is the optimum proportion of metropolitan residents that would yield the lowest per capita public expenditure? 
+42.3%
+
+```{r}
+# 777.85 - 17.38*met + 0.205*metˆ2
+# -17.38*1 + 0.205*2*years
+# -17.38 + 0.41*years
+17.38/0.41
+```
+
+
+## 7.	Write up a summary of the results.
+
+### **优化后的版本**
+
+The researcher was interested in the relationship between the percentage of a state’s population living in metropolitan areas and per capita spending. One possible perspective is that cities might uniformly save or cost money for the state. Cities could save money by concentrating people in a smaller geographical area, making it easier and more cost-effective for the state to provide basic services. Conversely, cities might increase state spending due to the need for additional services such as public transportation, which are less common in rural areas. It is also possible that both perspectives are partially correct: smaller cities might save the state money by reducing costs for existing services, but as cities grow larger, new public services may be required, increasing state spending.
+
+Since the researcher was uncertain about which perspective was accurate, we tested two models. The first model examined only the linear relationship between the percentage of people living in metropolitan areas and per capita spending. The second model included a quadratic term to capture potential non-linear effects as cities grow larger. In both models, we mean-centered the percentage of people living in metropolitan areas. The quadratic model explained more variance (\( R^2 = 0.17 \)) compared to the linear model (\( R^2 = 0.004 \)), indicating that the quadratic model provided a better fit for the data.
+
+Examining the results of the quadratic model revealed that, for states with an average percentage of people living in metropolitan areas, there was no significant linear relationship between the percentage of people living in cities and per capita spending, \( F(1, 42) = 0.93 \), \( p = 0.339 \), partial \( \eta^2 = 0.02 \). However, we found a significant quadratic relationship, \( b = 0.21 \), \( F(1, 42) = 9.07 \), \( p = 0.004 \), partial \( \eta^2 = 0.17 \). This result suggests that for every 1% increase in the percentage of people living in metropolitan areas, the relationship between urbanization and per capita spending becomes 0.40 units more positive. Thus, initially, as more people move to cities, states spend less per person, but once cities reach a certain size, the states must spend more to maintain them.

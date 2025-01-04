@@ -1,0 +1,451 @@
+---
+title: "Three-way Interactions & Polynomial Regression"
+author: "Yan Zhu"
+date: "2025-01-04"
+output: 
+  html_document:
+    toc: yes
+    toc_float: yes
+    theme: cerulean
+    number_sections: no
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Conceptual Questions
+
+## 1.	What do Judd and colleagues recommend in terms of reporting “simple” and “main” effects? What is their justification? Does Jaccard (2003) agree or disagree with this perspective? 
+
+Judd and colleagues (2013) argue that the term “main effect” is usually applied incorrectly when interpreting regression coefficients from interactive models. They note that while this term is meant to convey the idea that a variable has an effect across all levels of another variable, that isn’t actually what the test of a single parameter demonstrates. Rather, in an interactive model with centered variables, a coefficient for a given parameter represents the effect of that variable for a specific kind of participant: one who is average with regard to the other predictor variable(s). Thus, they argue that the term “simple effect” should be used in these situations, just as it is when we examine effects at specific levels of the predictor variables. Jaccard (2003) takes the same perspective as Judd and colleagues.
+
+## 2.	When should you dichotomize a continuous variable? Why?
+NEVER. It decreases power.
+
+Caveat: The only case in which it might be good is if you think that the experience of people beyond a certain cut-off is qualitatively different than that of those just below the cut-off. For example, if we think that income is related to well-being among low income people, if people’s income gets too low they might qualify for certain goverment programs (such as free or reduced price lunch or medicaid). Because these programs often have an income cut-off, the experience of people just above or below the cut-off is qualitatively different. However, in psychological research, we rarely have situations that meet this criteria, and even when we do (as in the example above), it is often better to ask participants question about those experiences (such as: does your child receives free or reduced priced lunch), rather than assume that everyone beyond the cut-off has the same experience. So overall, the situations in which it is a good idea to dichotomize a variable are extremely rare.
+
+
+## 3.	A researcher wants to determine if living in an urban versus rural area predicts anxiety. The researcher goes door to door in two towns (one urban and one rural) and asks all people living in each dwelling (home, apartment, etc.) questions to assess their anxiety. In multiple people live in the same dwelling, the researcher asks each of them to answer the questions. In two or three sentences, explain which model assumption is most directly violated by this research design.
+
+Because multiple observations come form the same dwelling, we have violated the independence model assumption. Put in context, one person's anxiety could affect another person's anxiety. We will discuss in 710 how to handle issues of nonindependence.
+
+
+# Data Analysis
+
+## 1. Read the data file into R and explore univariate statistics and bivariate relationships.
+```{r}
+# set your working directory
+
+# load libraries
+library(psych)
+library(car)
+library(ggplot2)
+library(tidyverse)
+library(dplyr)
+library(effectsize)
+
+source("/Users/yanzhu/Desktop/sample_code/functions.R")
+
+# read data
+d <- read.csv("/Users/yanzhu/Desktop/sample_code/Design and Analysis of Psychological Experiments/Data/hw_12_darts.csv")
+
+# Univariate
+str(d)
+glimpse(d)
+describe(d)
+
+# bivariate
+d %>% GGally::ggpairs()
+```
+
+
+## 2.	In this homework, you will fit two models which address the three hypotheses described above. For models including interactions, center your predictors.
+
+```{r}
+# Recode dichotomous
+d$experience_c <- dplyr::recode(d$experience,
+                                "0" = -.5,
+                                "1" = .5)
+
+d$condition_c <- dplyr::recode(d$condition, 
+                           "0" = -.5,
+                           "1" = .5)
+# Mean-center continuous
+d$bac_c <- d$bac - mean(d$bac, na.rm = T)
+d$coordination_c <- d$coordination - mean(d$coordination, na.rm = T)
+```
+
+
+## 3.	Make a table including the mean and standard deviation for score, coordination, and BAC broken down into the four possible combinations of condition and experience.
+```{r}
+d$condition_f <- factor(d$condition_c, 
+                       c(-.5, .5), 
+                       c("Placebo", "Alcohol"))
+
+d$experience_f <- factor(d$experience_c, 
+                         c(-.5, .5), 
+                         c("Novice", "Experienced"))
+
+d %>% 
+  group_by(condition, experience) %>%
+  summarise(score_m = mean(score, na.rm = T), score_sd = sd(score, na.rm = T),
+            coordination_m = mean(coordination, na.rm = T), 
+            coordination_sd = sd(coordination, na.rm = T),
+            bac_m = mean(bac, na.rm = T), bac_sd = sd(bac, na.rm = T))
+```
+
+
+## 4. Does the effect of the alcohol condition on game scores depend on experience?
+
+### a.	Fit a model that addresses this question.
+```{r}
+m_exp = lm(score ~ condition_c * experience_c, data = d)
+summary(m_exp)
+```
+
+
+### b.	Report and interpret each of the parameter estimates, reporting a parameter estimate, F-value, and p-value (one sentence each is sufficient).
+b0: The predicted score for someone who is theoretically in-between the two experimental conditions and theoretically in-between the two expertise levels is 80.58.
+
+b1: For participants theoretically in-between the two experience conditions, those in the alcohol condition, on average, had scores 12.57 units lower than those in the placebo condition, this difference was significant at the trend level, b = -12.57, F(1, 56) = 3.36, p = .072.
+
+b2: For participants theoretically in-between the two experimental conditions, there is a significant difference overall between experience groups, b = 20.17, F(1, 56) = 8.65, p = .005, such that participants who were experienced players had, on average, a 20.17 higher score than participants who were novices.
+
+b3: How the effect of condition differs between those with low experience and those with high experience. The interaction is not significant, b = 3.00, F(1, 56) = .05, p = .828.
+
+### c.	Describe the experience effect for those in the alcohol group. Use a general linear model and R code (i.e., make R do the computation for you rather than deriving it from the parameter estimates determined in part a). Interpret the relevant coefficient and report an F-value and p-value.
+```{r}
+d$condition_alc <- dplyr::recode(d$condition,
+                                 "0" = -1,
+                                 "1" = 0)
+
+m_exp_alc <- lm(score ~ condition_alc * experience_c, data = d)
+summary(m_exp_alc)
+```
+```{r}
+2.235 ^ 2 # for F value
+```
+There is a positive effect of experience for those in the alcohol group, with experienced players scoring 21.67 points higher than novices, b = 21.67, F(1, 56) = 4.99, p = .029.
+
+### d.	Create a publication quality graph depicting the model that you fit.
+```{r}
+# Recode from numeric to actual names, make factors
+d$condition_str <- as.factor(dplyr::recode(d$condition,
+                                           "0" = "Placebo",
+                                           "1" = "Alcohol"))
+d$experience_str <- as.factor(dplyr::recode(d$experience,
+                                            "0" = "Novice",
+                                            "1" = "Experienced"))
+
+# Re-run the model with IVs as factors and make sure that everything looks fine
+m_exp_str <- lm(score ~ condition_str * experience_str, data = d)
+summary(m_exp_str)
+
+
+
+# Yhat predictions
+d_graph <- expand.grid(condition_str = c("Placebo", "Alcohol"), 
+                       experience_str = c("Experienced", "Novice"))
+
+d_graph <- ggplotPredict(m_exp_str, d_graph)
+
+# Graph
+bplot <- ggplot(d_graph, aes(x = condition_str, y = Predicted, 
+                                      fill = experience_str)) +
+  geom_bar(stat = 'identity',  
+           position = position_dodge(width = .5), 
+           width = .5) + 
+  geom_point(data = d, aes(y = score, x = condition_str, 
+                           group = experience_str), 
+             position = position_jitterdodge(.22, 0, .5), 
+             alpha = .5) + 
+  geom_errorbar(aes(ymin = CILo, ymax = CIHi), 
+                position = position_dodge(width = .5), 
+                width = .25) +
+  labs(x = 'Intoxication Condition', 
+       y = 'Game Performance',
+       fill = "Experience Level") +
+  theme_bw(base_size = 14) +
+  theme(axis.line = element_line(color="black"),
+        axis.ticks = element_line(color="black"),
+        panel.border = element_blank(),
+        legend.position = c(.14, .92), 
+        legend.background = element_blank()) +
+  scale_fill_brewer(palette = 2)
+bplot
+```
+
+## 5.	Fill in the blanks for this regression equation, recording your answers as A-D in your RMarkdown:
+score = ___A___ + __B___ * condition_c + __C___ * experience_c + ___D____ * condition_c * experience_c
+
+score = 80.58 + -12.57 * condition_c + 20.17 * experience_c + 3.00 * condition_c * experience_c
+
+> A: 80.58
+
+> B: -12.57
+
+> C: 20.17
+
+> D: 3.00
+
+## 6.	Using the equation above, what is the magnitude of the effect of condition for novice participants? Try to find the answer from the equation, without recoding your variables in R.
+score = 80.58 + -12.57* condition_c + 20.17 * experience_c + 3.00 * condition_c * experience_c
+
+novice = -.5 for experience_c
+
+score = 80.58 + -12.57 * condition_c + 20.17 -.5 + 3.00 -.5 * condition_c
+
+score = 80.58 + -12.57 * condition_c + -10.085 + -1.5 * condition_c
+
+score = 70.495 + -14.07 * condition_c
+
+The magnitude of the condition effect for novices is -14.07
+
+
+## 7.	Using the equation above, what is the magnitude of the effect of experience for participants in the alcohol condition? Try to find the answer from the equation, without recoding your variables in R.
+score = 80.58 + -12.57 * condition_c + 20.17 * experience_c + 3.00 * condition_c * experience_c
+
+alcohol = .5 for condition_c
+
+score = 80.58 + -12.57.5 + 20.17 * experience_c + 3.00.5 * experience_c
+
+score = 80.58 + -6.285 + 20.17 * experience_c + 1.5 * experience_c
+
+score = 80.58 + -6.285 + 20.17 * experience_c + 1.5 * experience_c
+
+score = 74.295 + 21.67 * experience_c
+
+The magnitude of the experience effect for participants in the alcohol condition is 21.67
+
+## 8.	Although it was not part of the researchers’ hypothesis, examine if the effect of the alcohol condition on game scores depended on coordination?
+
+### a.	Fit a model that addresses this question.
+```{r}
+m_coord <- lm(score ~ condition_c * coordination_c, data = d)
+summary(m_coord, t = F)
+
+car::Anova(m_coord, type = 3) %>% eta_squared()
+```
+
+
+### b.	Report and interpret each of the parameter estimates, reporting relevant statistics (one sentence each is sufficient).
+b0: The predicted score for someone who is average with respect to coordination and theoretically in-between our experimental conditions is 79.07.
+
+b1: For someone of average coordination, there is no difference between the alcohol and the placebo group, b = -11.77, F(1, 56) = 2.59, p = .113.
+
+b2: For someone who is theoretically in-between our experimental conditions, there is no effect of coordination, b = 0.68, F(1, 56) = 0.24, p = .630.
+
+b3: How much the coordination effect differs between conditions. This interaction effect is not significant, b = -5.19, F(1, 56) = 3.39, p = .071.
+
+### c.	Determine the (simple) alcohol condition effect for someone with a coordination score one standard deviation above the mean of that variable. Interpret the relevant coefficient and report appropriate statistics.
+```{r}
+# Note: to recode so 1 SD ABOVE the mean is equal to 0, you SUBTRACT 1SD from the mean-centered version
+# If you add 1 SD to the mean-centered version, that would make 1 SD BELOW the mean = 0 (NOT what you want!)
+d$coordination_1sd <- d$coordination_c - sd(d$coordination, na.rm = T)
+# same as:
+d$coordination_1sd_b <- d$coordination - mean(d$coordination, na.rm = T) - sd(d$coordination, na.rm = T)
+
+m_coord_1sd <- lm(score ~ condition_c * coordination_1sd, data = d)
+summary(m_coord_1sd)
+```
+Among those with a coordination score one SD above the mean, the effect of condition was significant, b = -25.43, F(1, 56) = 5.81, p = .019, such that those in the alcohol in the condition had a 25.43 lower score than those in the placebo condition.
+
+
+### d.	(Bonus Question): Generate a bar graph with four bars representing the model predictions for participants who are 1 SD above and 1 SD below the mean on coordination and who are either in the placebo or in the alcohol condition. Include error bars, but no raw data. 
+```{r}
+# Already made a factor version of the condition variable
+# Model with factorial dichotomous variable
+m_coord_str <- lm(score ~ condition_str * coordination, data = d)
+summary(m_coord_str)
+```
+
+```{r}
+# Note: Now here we want to use values 1 SD above the mean and 1 SD below the mean
+# to plug into model predictions (not recode so those values = 0). 
+# So here we add for above, and subtract for below.
+hi_coordination <- mean(d$coordination, na.rm = T) + sd(d$coordination, na.rm = T)
+lo_coordination <- mean(d$coordination, na.rm = T) - sd(d$coordination, na.rm = T)
+
+d_input_8 <- expand.grid(condition_str = as.factor(c("Placebo", "Alcohol")),
+                        coordination = c(lo_coordination, hi_coordination))
+
+# predict data from the model separately by group
+d_predictions_8 <- ggplotPredict(m_coord_str, d_input_8)
+
+# clean up variables
+d_predictions_8$score <- d_predictions_8$Predicted
+d_predictions_8$coordination <- if_else(d_predictions_8$coordination == hi_coordination, 
+                                 "+1 SD", "-1 SD")
+
+# Graph
+bplot_coord <- ggplot(d_predictions_8, aes(x = condition_str, y = score, 
+                                      fill = coordination)) +
+  geom_bar(stat = 'identity',  
+           position = position_dodge(width = .5), 
+           width = .5) + 
+  geom_errorbar(aes(ymin = CILo, ymax = CIHi), 
+                position = position_dodge(width = .5), 
+                width = .25) +
+  labs(x = 'Intoxication Condition', 
+       y = 'Game Performance',
+       fill = "Coordination (self-rated)") +
+  theme_bw(base_size = 14) +
+  theme(axis.line = element_line(color="black"),
+        axis.ticks = element_line(color="black"),
+        panel.border = element_blank(),
+        legend.position = c(.2, .92), 
+        legend.background = element_blank()) +
+  scale_fill_manual(values = c("#45B39D", "#BA57E2"))
+bplot_coord
+```
+
+## 9.	Using the b-value estimates obtained in question 8, write out the regression equation for the model you fit in 8a.
+score = 79.07 + (-11.77) * condition_c + 0.68 * coordination_c + (-5.19) * condition_c * coordination_c
+
+## 10.	What is the magnitude of the effect of coordination for participants in the placebo condition? Try to find the answer from the equation in #9, without recoding your variables in R.
+score = 79.07 + (-11.77) * (-.5) + 0.68 * coordination_c + (-5.19) * (-.5) * coordination_c
+
+score = 79.07 + 5.89 + 0.68 * coordination_c + 2.60 * coordination_c
+
+score = 84.96 + 3.28 * coordination_c
+
+
+## 11.	What is the expected score for participants with a coordination score of 9 who were in the placebo condition? Try to find the answer from the equation in #9, without recoding your variables in R.
+score = 84.96 + 3.28 * coordination_c
+
+mean coordination = 4.52
+
+9 - 4.52 = 4.48
+
+score = 84.96 + 3.28 * 4.48
+
+score = 99.65
+
+
+## 12.	Does the effect of (measured) blood alcohol concentration on game scores depend on coordination?
+
+### a.	Fit a model that addresses this question.
+```{r}
+m_coord_bac <- lm(score ~ bac_c * coordination_c, data = d)
+summary(m_coord_bac)
+```
+
+### b.	Report and interpret each of the parameter estimates, reporting relevant statistics (one sentence each is sufficient).
+b0: The predicted score for someone who is average with regard to both bac and coordination is 79.18
+
+b1: For people with average coordination, every one unit increase in bac is related to a 5.63 unit decrease in dart scores, b = -5.63, F(1, 56) = 39.40, p < .001.
+
+b2: For someone with average bac, there is no effect of coordination, b = -0.38, F(1, 56) = 0.12, p = .735.
+
+b3: How the relation between coordination and darts scores changes across values of bac. The interaction is significant, b = -0.94, F(1, 56) = 6.80, p = .012.
+
+### c.	Is there an effect of coordination for someone who has a BAC at the legal limit (coded as 8 in this data file)?
+```{r}
+d$bac_8 <- d$bac - 8
+m_coord_bac_8 <- lm(score ~ coordination_c * bac_8, data = d)
+summary(m_coord_bac_8, t = F)
+```
+There is a significant effect of coordination for those with a bac at the legal limit, such that a one unit increase in coordination was related to a 5.18 unit decrease in performance, b = -5.18, F(1, 56) = 4.83, p = .032.
+
+### d.	Graph the model you ran in question 12a, with coordination on the x-axis. For BAC, plot two different regression lines: one representing participants with 0 BAC and the other representing the mean BAC among participants in the alcohol group. 
+```{r}
+m_coord_bac_plot <- lm(score ~ bac * coordination, data = d) 
+
+bac_0 <- 0
+bac_m <- mean(d$bac[d$condition_c == .5], na.rm = T)
+
+d_input_12 <- expand.grid(coordination = seq(min(d$coordination, na.rm = T), 
+                                             max(d$coordination, na.rm = T), 
+                                             length = 100),
+                        bac = c(bac_0, bac_m))
+
+d_predictions_12 <- ggplotPredict(m_coord_bac_plot, d_input_12)
+
+d_predictions_12$score <- d_predictions_12$Predicted
+d_predictions_12$bac <- if_else(d_predictions_12$bac == 0, 
+                                 "0", "Average")
+
+plot_coord_bac <- ggplot(data = d, aes(x = coordination, y = score)) +
+  geom_point(position = position_jitter(width = .5), alpha = .6) +
+  geom_smooth(data = d_predictions_12, 
+              stat = "identity",
+              aes(color = bac, ymin = CILo, ymax = CIHi)) +
+  labs(x = "Coordination", y = "Game Performance", color = "BAC Level") + 
+  theme_bw(base_size = 14) +
+  theme(axis.line = element_line(color="black"),
+        axis.ticks = element_line(color="black"),
+        panel.border = element_blank(),
+        
+        legend.background = element_blank()) +
+  scale_color_brewer(palette = 2)
+plot_coord_bac
+```
+
+
+### e.	Bonus: Add a dotted vertical line at the mean of coordination.
+```{r}
+plot_coord_bac_v <- plot_coord_bac +
+  geom_vline(xintercept = mean(d$coordination, na.rm = T), 
+             linetype = "dotted")
+plot_coord_bac_v
+```
+
+
+
+### f.	Graph the model you ran in question 12a, with BAC on the x-axis. For coordination, plot two different regression lines: one representing participants 1 SD above the mean of coordination and the 1 SD below the mean.
+```{r}
+hi_coordination <- mean(d$coordination, na.rm = T) + sd(d$coordination, na.rm = T)
+lo_coordination <- mean(d$coordination, na.rm = T) - sd(d$coordination, na.rm = T)
+
+d_inputs <- expand.grid(bac = seq(min(d$bac, na.rm = T), max(d$bac, na.rm = T), 
+                                  length = 1000),
+                        coordination = c(lo_coordination, hi_coordination))
+
+d_predictions <- ggplotPredict(m_coord_bac_plot, d_inputs)
+
+d_predictions$score <- d_predictions$Predicted
+d_predictions$coordination <- if_else(d_predictions$coordination == hi_coordination, 
+                                 "+1 SD", "-1 SD")
+
+plot_bac_coord_1sd <- ggplot(data = d, aes(x = bac, y = score)) +
+  geom_point(position = position_jitter(width = .5), alpha = .6) +
+  geom_smooth(data = d_predictions, 
+              stat = "identity",
+              aes(color = coordination, ymin = CILo, ymax = CIHi)) +
+  labs(x = "Blood Alcohol Content", y = "Game Performance", color = "Coordination") + 
+  theme_bw(base_size = 14) +
+  theme(axis.line = element_line(color="black"),
+        axis.ticks = element_line(color="black"),
+        panel.border = element_blank(),
+        legend.position = c(.9, .9), 
+        legend.background = element_blank()) +
+  scale_color_brewer(palette = 2)
+plot_bac_coord_1sd
+```
+
+
+### g.	Bonus: Add a dotted line showing the effect of BAC on game scores for people at the mean of coordination.
+```{r}
+m_coord_c <- lm(score ~ bac * coordination_c, data = d)
+coef(m_coord_c)
+
+plot_bac_coord_1sd_v <- plot_bac_coord_1sd +
+  geom_abline(intercept = coef(m_coord_c)[1], 
+              slope = coef(m_coord_c)[2], 
+              linetype = "dashed")
+plot_bac_coord_1sd_v
+```
+
+##  13.	What would happen to the SE of the parameter estimate of the interaction term in the previous model if you had used the uncentered versions of blood alcohol concentration and coordination? Would it increase, decrease, stay the same, or is it impossible to say what will happen to it?
+The SE will go up because our estimates are most precise at the mean.
+
+## 14.	Write up the results of the study and be explicit about whether the researchers’ 3 hypotheses were confirmed or not. There is no need to discuss the results from the model in question 8.
+In order to test our first two hypotheses, we fit a model regressing final scores on past experience with darts (coded -.5 for novice and .5 for experts), alcohol condition (coded -.5 for placebo, and .5 for alcohol) and their interaction. If the placebo effect has a strong influence, condition should not be associated with scores. Indeed, there is no significant difference between conditions, b = -12.57, F(1, 56) = 3.36, p = .072. However, as can be seen in Figure 1, we did find that this effect was moderated by experience, b = 40.33, F(1, 56) = 8.65, p = .005. The figure suggests that expert dart players were not affected by the experimental manipulation. Novice players, on the other hand, had lower performance if they drank alcohol compared to those who were in the placebo condition.
+
+To test our third prediction we fit a model regressing dart scores from bac (mean-centered), self-reported coordination (mean-centered), and their interaction. We found that bac was predictive of the final dart score, b = -5.63, F(1, 56) = 39.40, p < .001. This implies that true drunkenness, not just perceived drunkenness, is predictive of performance. A one unit increase in bac was related to a 5.63 points decrease in participant’s final scores. However, this effect was moderated by coordination, b = -0.94, F(1, 56) = 6.80, p = .012. As can be seen in Figure 3, the higher the self-reported coordination of a participant, the more their performance was impacted by higher bac. This suggests that truly being drunk has a greater impact among people who believe they are more coordinated.
+
+## 15.	How long did this assignment take you (in hours)?
+
+
+

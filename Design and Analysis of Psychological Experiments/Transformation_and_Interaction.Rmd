@@ -1,0 +1,471 @@
+---
+title: "Transformations, Two Predictors and Their Interaction"
+author: "Yan Zhu"
+date: "2025-01-04"
+output: 
+  html_document:
+    toc: yes
+    toc_float: yes
+    theme: cerulean
+    number_sections: no
+---
+
+# Part A: Conceptual Questions
+
+## 1.
+Judd, McClelland, and Ryan (2017) declare that it is unethical to include outliers in analyses without reporting or removing them. In your own words, what are the ethical grounds the authors use to support this claim? Why should we care as statisticians and practitioners of science?
+
+Generally speaking, outliers exert more influence on the data than observations that are not extreme in terms of their scores on the predictor(s) and/or outcome variable(s). Analyses that include outliers are likely to misrepresent the majority of the observations, possibly resulting in a conclusion inconsistent with the story the data really have to tell. Including outliers in analysis increases the likelihood that we will come to inaccurate conclusions, contributing to problems of replicability in science.
+
+
+## 2.
+You find yourself in the middle of testing the conditions of a mediation model when suddenly R stops working and you must continue by hand. Before R stopped working, you had successfully calculated the size of the effect for the b path (.367), the a path (.988), and the c path (3.65). Moreover, you found that all three of these pathways were significant -- paths a and b were just barely significant. Calculate the indirect effect and the direct effect. 
+
+**ab = a x b = (.367 x .988) = .362**
+
+**c’ = c - ab = 3.65 - .362 = 3.28**
+
+## 3.
+The next day (when R was working again) you calculated the size of the effect for the direct and indirect effect using R. Your linear model testing the direct effect revealed that it was significant. Your bootstrapping method estimated a 95% percent confidence interval around the indirect effect ranging from -3.65 to .01. Based on this information, can you conclude that the data are consistent with the hypothesized mediation model? Why or why not? 
+
+The data are not consistent with the hypothesized mediation model. The fourth condition is not met.
+
+## 4.
+Why is the Sobel test problematic? What is the advantage of the non-parametric bootstrapping method over the Sobel test?  
+
+The Sobel test involves testing the a * b product by dividing it by an estimate of the standard error of the product of two slopes. The result of this computation is compared to a normal distribution. This method of testing is problematic because the product of two normally distributed variables does not typically have a normal distribution. The non-parametric bootstrapping method makes no assumption of normality, and has more power than the Sobel test.
+
+
+
+## 5.
+Judd, Yzerbyt, and Muller (2014) claim that the term “direct effect” in mediation analysis can be misleading. In your own words, explain why.
+
+The direct effect is the effect of X on Y statistically controlling for M. This term implies that X acts directly on Y, but this may not be the case. There could be other mediators of the relationship between X and Y that you are not including in your model. Thus, in reality the direct effect may not reflect a true direct effect of X on Y.
+
+## 6. True or false
+
+- Mediation analysis can determine causality between the independent variable (IV) and the dependent variable (DV). **False**
+
+Once the indirect effect is significant, it is impossible to have a non-significant total effect. **False**
+
+## 7.
+A researcher compares a model with five predictors to a model with three predictors. Why is this comparison not very useful in most cases?
+
+Because we cannot know which predictor is explaining variance. It the model comparison says that the five predictor model explains significantly more variance then we do not know if this is due to one of the predictors or to both. Likewise, if the comparison is not significant, we do not know if both predictors do not explain variance or if one does and the other one doesn’t. Overall, it is an uninformative model comparison.
+
+
+## 8. True or false
+
+- Having a correlation of .9 between your predictor and your outcome variable leads to multicollinearity.  **False**
+
+- Multicollinearity is only a problem if it involves a focal predictor. **True**
+
+## 9. True or false
+
+- Hat values represent leverage on one predictor: your focal predictor. **False**
+
+- I have three predictors and 120 participants. I will have 120 Cook’s D values across ALL parameters and 120 dfbetas PER parameter.  **True**
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, echo = TRUE)
+library(psych)
+library(tidyverse)
+library(effectsize)
+library(ggplot2)
+library(janitor)
+library(skimr)
+library(kableExtra) # corr_table
+library(rockchalk) # delta r squared
+library(car) # vif
+library(lavaan)
+library(data.table)
+
+source("/Users/yanzhu/Desktop/sample_code/functions.R")
+```
+
+
+# Part B: Data Analysis 1
+For Part B of the assignment, you will analyze data from the Trends in International Mathematics and Science Study (TIMSS). TIMSS is a well-established international assessment of mathematics and science at the fourth and eighth grades. The study is led by the International Association for the Evaluation of Educational Achievement at Boston College’s Lynch School of Education and Human Development. It is administered every four years, and as of 2019, approximately 60 countries use TIMSS trend data for monitoring the effectiveness of their educational systems in a global context. In 2019, the study was administered to children electronically. The results were made publicly available online (see link below). For this assignment, we will focus on fourth-grade level mathematics.
+
+Many jobs require a basic understanding of mathematics, and this will become increasingly so in the future. Mathematics helps us manage a host of daily tasks and is essential in developing the technology we depend on, such as computers, smartphones, and television.
+
+The TIMSS assesses various aspects that are crucial for effective mathematics learning. These aspects include content-related, cognitive, and contextual dimensions.
+
+Content-related dimensions include areas such as number, measurement, geometry, and data. Cognitive dimensions consist of “knowing” (which contributes to 40% of the total assessment), “applying” (also contributing to 40% of the total assessment), and “reasoning” (which accounts for 20% of the total assessment). Contextual dimensions go beyond just academic content and evaluate the context in which learning occurs. These dimensions include measurements examining students’ experiences in schools and the home (e.g., having adequate resources), as well as their attitudes towards learning (e.g., confidence in math and/or liking math).
+
+In the following data analyses, you will develop and test research questions with a subset of data from the TIMSS. In the dataset, each row represents a country, and the scores are national average scores. The data are from fourth graders.
+
+Mullis, I. V. S., Martin, M. O., Foy, P., Kelly, D. L., & Fishbein, B. (2020). TIMSS 2019 International Results in Mathematics and Science. Retrieved from Boston College, TIMSS & PIRLS International Study Center website: https://timssandpirls.bc.edu/timss2019/international-results/
+
+
+```{r}
+getwd()
+d <- read_csv("/Users/yanzhu//Desktop/sample_code/Design and Analysis of Psychological Experiments/Data/timss.csv") %>% clean_names()
+describe(d)
+skim(d)
+```
+*There are missing values in math_knowing, math_applying, math_reasoning, home_resource, gni_per_capita*
+
+## Model 1
+```{r}
+#  Generate a correlation matrix with Math Knowing, Math Applying, Math Reasoning, Students Conf Math, and Students Like Math. 
+
+d %>% select(c("math_knowing", "math_applying", "math_reasoning", "students_conf_math", "students_like_math")) %>% GGally::ggpairs(progress = FALSE)
+```
+
+```{r}
+variables_selected <- c("math_knowing", "math_applying", "math_reasoning", "students_conf_math", "students_like_math")
+d_corrs <- corr_table(variables_selected, "pairwise.complete")
+d_corrs %>%
+  kbl(caption = "Table 1") %>%
+  kable_classic(full_width = F, html_font = "Times New Roman")
+```
+
+
+- the **focal predictor** is "Students_Like_Math"
+- the **covariate** is "Percent_Girls"
+
+Model C: overall_math_score = b0 + b1 * percent_girls
+Model A: overall_math_score = b0 + b1 * students_like_math + b2 * percent_girls
+
+
+```{r}
+# Fit the appropriate linear model from B5 with uncentered predictors. Interpret b0, b1, and b2. 
+m1 = lm(overall_math_score ~ students_like_math + percent_girls, d)
+summary(m1)
+```
+
+b0 = the predicted overall TIMSS math score when students liking math is 0 and percent girls is 0.
+
+b1 = surprisingly, per unit increase in students liking math, TIMSS math scores decrease significantly by 41.32 points, controlling for percent girls who took the assessment.
+
+b2 = TIMSS math scores increase 9.26 points per 1% increase in girls who took the assessment, controlling for how much students like math. This effect was not statistically significant.
+
+
+```{r}
+# Obtain ηp2 and ΔR2 for the two predictors in the model1 (m1)
+eta_squared(car::Anova(m1, type =3))
+getDeltaRsquare(m1) 
+```
+
+
+## Model 2
+```{r}
+# Now, consider the research question: Does gross national income, school resources, and home resources relate to each of the three cognitive dimensions of the TIMSS assessment? Generate a 6x6 correlation matrix.
+
+d  %>% select(c("math_knowing", "math_applying", "math_reasoning", "school_resources", "home_resources", "gni_per_capita")) %>% GGally::ggpairs(progress = FALSE)
+```
+
+GNI per capita X math knowing = 0.537, positive, large
+home resources X math knowing = 0.722, positive, large
+school resources X math knowing = 0.547, positive, large
+
+Focal predictor: GNI per capita
+Covariates: home resources and school resources
+
+Model C: overall_math_score = b0 + b1 * school_resources + b2 * home_resources
+Model A: overall_math_score = b0 + b1 * gni_per_capita + b2 * school_resources + b3 * home_resources
+
+
+```{r}
+d$gni_per_capita_c = d$gni_per_capita - mean(d$gni_per_capita, na.rm=T)
+d$school_resources_c = d$school_resources - mean(d$school_resources, na.rm=T)
+d$home_resources_c = d$home_resources - mean(d$home_resources, na.rm=T)
+  
+m2 = lm(overall_math_score ~ gni_per_capita_c + school_resources_c + home_resources_c, d)
+summary(m2)
+```
+
+b0 = predicted overall math score when GNI per capita, school resources, and home resources are average.
+
+b1 = per unit increase in GNI per capita, math scores decrease 0.0002 points controlling for school resources and home resources. This did not reach statistical significance.
+
+b2 = per unit increase in school resources, math scores increase 10.3 points controlling for GNI per capita and home resources. This did not reach statistical significance.
+
+b3 = per unit increase in home resources, math scores SIGNIFICANTLY increase 43.42 points controlling for GNI per capita and school resources.
+
+By considering all the information you have up to this point, do you think there may be an issue with multicollinearity in this model? In general, what happens to standard errors when multicollinearity occurs?
+
+- There may be a problem since school and home resources are correlated with the focal predictor GNI per capita.
+
+I would like to assume there may be an issue with multicollinearity in this model because of *high correlation between independent variables*. Multicollinearity probelm might increased uncertainty, wider confidence intervals, and change P-Values.
+
+
+Directly test the multicollinearity of each predictor in the model from B13. What is the variance inflation factor for each variable and do any exceed the conventional cut off?
+```{r}
+vif(m2)
+```
+
+- gni_per_capita = 2.13
+- school_resources = 1.98
+- home_resources = 3.35
+
+None exceed the conventional cutoff of 5.
+
+```{r}
+# Generate the following publication-quality plot
+m_b17 = lm(overall_math_score ~ gni_per_capita + school_resources + home_resources, d)
+
+d_graph <- expand.grid(
+  gni_per_capita = seq(from = min(d$gni_per_capita, na.rm = T), 
+                         to = max(d$gni_per_capita, na.rm = T), 
+                 length.out = max(d$gni_per_capita, na.rm = T) - 
+                              min(d$gni_per_capita, na.rm = T) + 1),
+  school_resources = mean(d$school_resources, na.rm = T), 
+  home_resources = mean(d$home_resources, na.rm = T)) 
+
+d_graph <- ggplotPredict(m_b17, d_graph)
+
+plot <- ggplot(data = d, aes(x = gni_per_capita, y = overall_math_score)) +
+  geom_smooth(data = d_graph, aes(y = Predicted, ymin = CILo, ymax = CIHi),
+    stat = "identity") +
+  theme_bw(base_size = 11) +
+  labs(x = "Gross National Income Per Capita", y = "TIMSS Score on 4th-Grade Math", 
+       title = "Countries’ Overall Math Scores as a Function of GNI per Capita") +
+    theme(plot.title = element_text(hjust = 0.5)) +
+    scale_y_continuous(limits = c(350, 650), breaks = seq(0, 650, by = 50), labels = seq(0, 650, by = 50)) +
+  scale_x_continuous(limits = c(0, 85000), breaks = seq(0, 85000, by = 10000))
+  
+plot
+
+```
+
+```{r}
+colors <- c("red", "blue", "green", "orange", "purple", "brown")
+
+avg_scores <- aggregate(cbind(gni_per_capita, overall_math_score) ~ global_region, data = d, FUN = mean)
+
+# 绘制散点图
+scatter_plot <- ggplot(d, aes(x = gni_per_capita, y = overall_math_score, color = global_region)) +
+  geom_point(alpha = 0.25) +  
+  scale_color_manual(values = colors) +
+  theme_minimal() +  
+  labs(title = "Scatter Plot of Scores by Region",
+       x = "Score 1",
+       y = "Score 2") +
+  geom_point(data = avg_scores) +
+  geom_text(data = avg_scores, aes(label = paste("Avg: ", round(gni_per_capita, 2), ", ", round(overall_math_score, 2))), vjust = -1)
+
+scatter_plot
+```
+
+```{r}
+#Africa -- TIMSS = 378.5, GNI = 5115
+#Asia -- TIMSS = 488.55, GNI = 23932.63
+#Europe -- TIMSS = 517.58, GNI = 31209.68
+#North America -- TIMSS = 523.5, GNI = 56365
+#Oceania -- TIMSS = 501.5, GNI = 49005
+#South America -- TIMSS = 441.0, GNI = 14830
+
+# Create a data frame with the provided data
+data <- data.frame(
+  GlobalRegion = c("Africa", "Asia", "Europe", "North America", "Oceania", "South America"),
+  TIMSS = c(378.5, 488.55, 517.58, 523.5, 501.5, 441.0),
+  GNI = c(5115, 23932.63, 31209.68, 56365, 49005, 14830)
+)
+
+# Create a scatter plot
+ggplot(data, aes(x = GNI, y = TIMSS, color = GlobalRegion, label = GlobalRegion)) +
+  geom_point(size = 4) +
+  geom_text(vjust = 2) +
+  labs(x = "Gross National Income Per Capita", y = "TIMSS Math Score") +
+  scale_color_manual(values = c("Africa" = "red", "Asia" = "blue", "Europe" = "green", "North America" = "purple", "Oceania" = "orange", "South America" = "pink")) +
+  theme_bw() +
+  theme(legend.position = "right") +
+  labs(color = "Region") +
+  scale_y_continuous(limits = c(350, 550), breaks = seq(350, 550, by = 50), labels = seq(350, 550, by = 50)) +
+  scale_x_continuous(limits = c(0, 60000), breaks = seq(0, 60000, by = 10000), labels = scales::comma_format(accuracy = 1e3))
+```
+
+
+# Part C: Data Analysis
+
+For Part C of the assignment, we will narrow from a global perspective to a local one. You will analyze a subset of data collected on Zoom from a math intervention study. Participants were a convenience sample recruited from the Madison, WI area.
+
+Integer arithmetic skills (e.g., addition with positive and negative numbers) are important for more advanced mathematical performance and learning. This study investigated factors associated with fluency in integer addition in children in fifth through seventh grade (N = 62, Mage = 11.44 years). The researchers examined demographic, attitudinal, and cognitive factors, which included age, grade, gender, mathematics anxiety, understanding of the Additive Inverse principle (i.e., the sum of any number and its inverse is 0), and use of mathematically precise language (“negative” rather than “minus” on a related task).
+
+
+```{r}
+d1 <- read_csv("/Users/yanzhu//Desktop/sample_code/Design and Analysis of Psychological Experiments/Data/integer_fluency.csv") %>% clean_names()
+describe(d1)
+skim(d1)
+```
+*No, there is no missing data.*
+
+
+```{r}
+#  Check the reliability of the math anxiety scale. None of the items are reverse coded. What is Cronbach’s alpha of this scale? Do you consider this scale reliable? Why?
+
+ma <- paste("ma_", 1:9, sep = "")
+psych::alpha(d1[, ma])
+```
+
+*I would consider this scale reliable*
+
+
+```{r}
+# Create a composite math anxiety score across the nine items. Label the new variable: math_anxiety_total.
+
+d1$math_anxiety_total = varScore(d1,
+                  Forward= ma,
+                  Reverse= c(),
+                  Range=c(1, 5),
+                  MaxMiss=0.25,
+                  Prorate=T) / 9
+```
+
+ 
+```{r}
+# Because only one participant identified as non-binary and the following research questions are examining differences between male and female participants, remove the one non-binary participant from the dataset. Note: Future studies should recruit samples with a wider variety of gender identities to examine the different kinds of experiences children have in education depending on their gender expression!!!!!
+
+d1 <- d1[d1$sub_id != 42, ]
+```
+
+
+```{r}
+m2 <- lm(integer_fluency ~ age_months + grade_level + gender + math_anxiety_total + additive_inverse + precise_language, data = d1)
+
+summary(m2)
+```
+
+*Only math anxiety is statistically significant! Per unit increase in math anxiety, integer fluency decreases 0.39 points, controlling for all other predictors in the model.*
+
+
+```{r}
+#X on Y
+m1 = lm(integer_fluency ~ gender, d1)
+summary(m1)
+
+#X on M
+m2 = lm(math_anxiety_total ~ gender, d1)
+summary(m2)
+
+#M on Y controlling for X
+m3 = lm(integer_fluency ~ math_anxiety_total + gender, d1)
+summary(m3)
+```
+
+*No, condition 2 is not satisfied.*
+
+
+```{r}
+#X on Y
+m1 = lm(integer_fluency ~ age_months, d1)
+summary(m1)
+
+#X on M
+m2 = lm(precise_language ~ age_months, d1)
+summary(m2)
+
+#M on Y controlling for X
+m3 = lm(integer_fluency ~ age_months + precise_language, d1)
+summary(m3)
+```
+
+*So far we do have evidence for the proposed mediation analysis.*
+
+
+Test the indirect effect of age on integer fluency through precise language. Set the seed to 123. Is the indirect effect significant?
+```{r}
+medmodel <- ' 
+precise_language ~ A * age_months
+integer_fluency ~ CPRIME * age_months + B * precise_language
+AB:= A*B
+Total := CPRIME + A*B
+'
+set.seed(123)
+fit1 <- sem(medmodel, data = d1, se = "bootstrap", bootstrap = 5000)
+
+parameterEstimates(fit1, ci = TRUE, level = 0.95, boot.ci.type = "perc", zstat = F)
+```
+
+
+
+Write-up the results:
+
+To investigate whether age relates to integer fluency (i.e., quickly solving integer addition problems), we fit a General Linear Model predicting integer fluency from age in months. Consistent with the existing literature, older participants performed higher on the integer fluency task, 𝐹(1,59)=19.89, 𝑝<0.001, 𝜂2=.25.
+
+To uncover a potential mechanism for the above effect, we conducted tests of mediation with a potential mediator (use of precise mathematical languge). We fit a path model predicting the mediator from age, and integer fluency from both the mediator and age. We followed recommendations of Preacher and Hayes (2004) and tested the indirect effect using nonparametric percentile bootstrapping. We only claim that our data is consistent with mediation if the following conditions are met: age has an effect on the mediator, the mediator has an effect on integer fluency (when controlling for age), and the indirect effect is nonzero. For our mediate, precise use of mathematical language, at least one of the four mediation conditions was not satisfied. Specifically, the fourth condition was not met, and 0 fell in the confidence interval of the indirect effect, 95% CI = [-0.007, 0.167].
+
+
+
+Now, you will add a (fake) variable to your dataframe. Pretend we had participants complete the Backwards Digit Span Task which measures working memory. Participants receive a score 1-9 with a higher value indicating higher working memory capacity. Merge the dataframe from C1-C10 with working_memory.csv. 
+```{r}
+drop <- c("working_memory")
+d1 = d1[,!(names(d1) %in% drop)]
+
+d2 = read.csv("/Users/yanzhu/Desktop/sample_code/Design and Analysis of Psychological Experiments/Data/working_memory.csv")
+d3 = full_join(d1, d2)
+```
+
+
+```{r}
+m_23 = lm(integer_fluency ~ working_memory + age_months, d3)
+summary(m_23)
+```
+
+```{r}
+# Consider one more additional exploratory hypothesis: We hypothesize working memory predicts integer fluency controlling for age. Fit a linear model predicting integer fluency from working memory and age. Do not center your predictors. 
+
+ggplot(data = d3, aes(x = working_memory, y = integer_fluency, color = age_months, label = sub_id)) +  
+  geom_point() + geom_text(vjust = -.5)
+```
+
+
+*The participant with "60" id is extreme*
+
+
+```{r}
+x_hats <- modelCaseAnalysis(m_23, Type = "HATVALUES")
+```
+
+*Row 60 (sub_id 41) has high leverage. It is far from the centroid of the data and far from the mean age.*
+
+
+```{r}
+x_resids <- modelCaseAnalysis(m_23, Type = "RESIDUALS")
+```
+
+*Row 1 (sub_id 71) is a regression outlier. It has a large residual.*
+
+```{r}
+x_cooks <- modelCaseAnalysis(m_23, Type = "COOKSD")
+```
+
+*Rows 1 and 60 OR sub_IDs 71 and 41*
+
+```{r}
+x_infs <- modelCaseAnalysis(m_23, Type = "INFLUENCEPLOT")
+```
+
+*Rows 1 and 60*
+
+*OR sub_IDs 71 and 41*
+
+
+If you had to give the researchers advice about whether to remove any of the participants, what would you say?
+
+*I would remove the two data points: 1 and 60.*
+
+
+Remove the influential participants and rerun the model from C12 with uncentered predictors. Interpret b0, b1, and b2. How did the SE for each predictor change? 
+
+- b0: Predicted integer fluency score is 16.24 when working memory and age of sample are 0.
+- b1: Integer fluency score increases significantly by 2.6 per unit increase in working memory controlling for age.
+- b2: Integer fluency score increases significantly by 0.14 per month increase in age controlling for working memory.
+
+SE decreased for both predictors!
+
+```{r}
+d3[c(1, 60),]
+```
+
+
+```{r}
+d3_cut = d3[-c(1, 60),]
+
+m_d3_cut = lm(integer_fluency ~ working_memory + age_months, d3_cut)
+summary(m_d3_cut)
+```
+
+

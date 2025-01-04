@@ -1,0 +1,176 @@
+---
+title: "Messy Data"
+author: "Yan Zhu"
+date: "2025-01-04"
+output: 
+  html_document:
+    toc: yes
+    toc_float: yes
+    theme: cerulean
+    number_sections: no
+---
+
+# Conceptual Questions
+
+1.	Simmons, Nelson, and Simonsohn (2011) propose six requirements for authors. What are the six requirements? Pick three that you think are the most important/effective and explain why those three are particularly important.
+
+>> i. Authors must decide the rule for terminating data collection before data collection begins and report this rule in the article.
+
+>> ii. Authors must collect at least 20 observations per cell or else provide a compelling cost-of-data- collection justification.
+
+>> iii. Authors must list all variables collected in a study.
+
+>> iv. Authors must report all experimental conditions, including failed manipulations.
+
+>> v. If observations are eliminated, authors must also report what the statistical results are if those observations are included.
+
+>> vi. If an analysis includes a covariate, authors must report the statistical results of the analysis without the covariate.
+
+2.	What is “statistical influence” in the context of case analysis? What measures do we use to assess influence? What is the key difference between these measures?
+
+>> The extent to which omitting an observation results in a change in parameter estimates. We use DfBetas and Cook’s d to measure how much influence an observation has. DfBetas measure the influence of cases on each parameter estimate, whereas Cook’s d measures the influence of cases on the entire model.
+
+
+# Data Analysis
+
+A public health organization wants to test the importance of staying active and healthy in the
+winter by examining links between cross-country skiing, vegetable consumption, and health, as
+measured by an independent doctor at the end of winter. Participants were 53 residents of the
+Madison, WI area who were recruited at the beginning of the winter and asked to record the
+number of times they went cross-country skiing over the course of the winter and their average
+daily vegetable consumption (in servings). At the end of the winter (i.e., the last week of March),
+a doctor conducted a health assessment of each participant and reported their health on a 0-10
+scale, with 0 representing very poor health and 10 representing excellent health.
+The researchers in the public health organization predict that cross-country skiing and vegetable
+consumption both contribute to overall health. They also expect to see little to no relationship
+between vegetable consumption and skiing behavior.
+
+```{r}
+library(psych)
+library(dplyr)
+library(car)
+library(ggplot2)
+
+source("/Users/yanzhu/Desktop/sample_code/functions.R")
+```
+
+
+
+## 1. Read in and inspect the data.
+
+```{r}
+d <- read.csv("/Users/yanzhu/Desktop/sample_code/Design and Analysis of Psychological Experiments/Data/hw_09_ski_veg_data.csv")
+describe(d)
+str(d)
+```
+
+
+## 2.	Fit a model testing the researchers’ hypothesis
+
+Fit a model testing the researchers’ hypothesis. Specifically, run a model testing whether skiing and vegetable consumption both uniquely explain variance in people’s health scores at the end of March (when included in the same model). Explain the result in a sentence in your R script.
+
+```{r}
+m1 <- lm(fitness ~ skiing + veggies, data = d)
+summary(m1)
+```
+
+Both vegetable consumption, F(1,50) = 18.2, p < .001 and skiing, F(1,50) = 51.35, p < .001, predict health at the end of the winter, together explaining 56.6% of the variance in fitness scores, R2 = .57.
+
+
+## 3.	Identify high leverage participants
+
+You suspect there may be outliers present in the dataframe. First, identify which participants have high leverage. For each of these participants, note the variable on which the participant is extreme (i.e., why it has a large hat value). (Note: a participant can have high leverage (can be far away from the centroid) even if its scores on each of the predictors are not extreme).
+
+```{r}
+hats <- modelCaseAnalysis(m1, Type = "HATVALUES")
+```
+
+22 and 33 have extreme skiing scores, 49 has extreme veggies score.
+
+## 4.	Test for regression outliers
+
+Next, test for regression outliers. For each participant you determine to be a regression outlier, report why this participant is a regression outlier (in terms of the variables present in the dataframe). 
+
+```{r}
+resids <- modelCaseAnalysis(m1, Type = "RESIDUALS")
+```
+
+- 14 has very high fitness despite never skiing and averaging 0 servings of vegetables
+- 33 has lower fitness than would be expected for someone who has skied so much
+- 49 has lower fitness than would be expected for someone who consumes so many vegetables
+
+## 5.	Examine Cook’s D scores
+
+Now examine the Cook’s D scores of the participants. Are the participants who have extreme Cook’s D scores surprising to you or not?
+
+```{r}
+cooks <- modelCaseAnalysis(m1, Type = "COOKSD")
+```
+
+No, they’re the same as the regression outliers.
+
+
+## 6.	Produce the influence plot
+
+Produce the influence plot for this model. Which participants have high influence as identified in this plot?
+
+```{r}
+inf <- modelCaseAnalysis(m1, Type = "INFLUENCEPLOT")
+```
+
+## 7.	Participant with small Cook’s D but large leverage
+
+One participant has a relatively small Cook’s D value, but a relatively large hat value on one of the predictors. Who is this person, and why is their influence small despite their large leverage?
+
+Participant 22, like 33, also skis much more than the average participant (84 times). However, this person also has a very high fitness score, in line with what we would predict for this amount of skiing. Thus, despite the high skiing score, this participant fits in with the trend of the data.
+
+## 8. Advice on removing participants
+
+If you had to give the researchers advice about whether to remove any of the participants, what would you say?
+
+I would probably tell them not to remove any of the participants. We don’t have any reason to believe that the participants aren’t representative of the sample that we want to generalize to.
+
+## 9.	Rule to prevent outliers
+
+Give an example of some rule you could have made regarding recruitment for the study that could have prevented the researchers from obtaining the kinds of outliers present in the data.
+
+We could have asked avid cross-country skiers not to sign up for the study.
+We also could have asked vegetarians not to sign up for the study.
+
+## 10.	Rerun the model after removing problematic participants
+
+Regardless of your question 8 advice, remove all problematic participants (in terms of influence) and run your focal model again. What has changed? Why?
+
+```{r}
+d <- d %>% filter(!sub_id %in% c(14, 33, 49))
+ 
+m1b <- lm(fitness ~ skiing + veggies, data = d)
+summary(m1b, t = F)
+summary(m1, t = F)
+```
+Many of the individual statistics have changed, as have effect sizes, but the direction and interpretation of the effects is the same as before: we simply have more precision in our testing now than we did before. * Remember, we are using an EXTREMELY liberal criterion to remove 3 out of 53 participants. In your own data, you would only want to do this if you had a VERY good reason.
+
+## 11. Results section
+
+We were interested in seeing whether cross-country skiing activity and vegetable consumption reliably predicted health assessed at the end of the winter. We removed three participants with extreme influence on the data, two of whom were avid cross-country skiers who skied much more than any of the other participants. We observed the predicted relationships with skiing and vegetables, such that both skiing activity, F(1,50) = 288.40, p < .001, and vegetable consumption, F(1,50) = 150.65, p < .001, predicted better health. While we observed the same relationships before removing the outliers, the decision to remove them improved our R squared from .57 to .85.
+
+## 12.	Publication-quality graph
+
+Make a publication-quality graph displaying the relationship between vegetables and health. Include two regression lines: one should show the relationship when controlling for skiing and one without skiing factored in. Does the line change much? Why or why not?
+
+```{r}
+m2 <- lm(fitness ~ veggies, data = d)
+summary(m2)
+
+pX <- data.frame(veggies = seq(min(d$veggies), max(d$veggies), length = 50), skiing = mean(d$skiing))
+pY1 <- ggplotPredict(m1, pX)
+pY2 <- ggplotPredict(m2, pX)
+ 
+plot1 <- ggplot(aes(x = veggies, y = fitness), data = d)
+plot1 <- plot1 + geom_point(color = "grey40", position = position_jitter(w = .3, h = .3)) +
+  geom_smooth(aes(y = Predicted, ymin = CILo, ymax = CIHi), data = pY1, stat = "identity", color = "slategray2") +
+  geom_smooth(aes(y = Predicted, ymin = CILo, ymax = CIHi), data = pY2, stat = "identity", color = "slategray3")
+plot1 <- plot1 + labs(x = "Daily vegetable servings", y = "End-of-winter fitness")
+plot1
+```
+

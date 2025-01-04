@@ -1,0 +1,320 @@
+---
+title: "LM_2Predictors"
+author: "Yan Zhu"
+date: "2025-01-04"
+output: 
+  html_document:
+    toc: yes
+    toc_float: yes
+    theme: cerulean
+    number_sections: no
+---
+This sample will use quasi-real (anonymized and randomized) data, adapted from the Public-Use Data Sets of the National Longitudinal Study of Adolescent to Adult Health (Add Health). See https://addhealth.cpc.unc.edu/ for more information.
+
+Cognitive ability and personality are two well-established aspects of individual differences, both of which are relatively stable across adulthood. However, it remains unclear how cognitive ability and personality influence the development of one another over the lifespan. A group of researchers here at UW-Madison want to investigate whether cognitive ability assessed in adolescence would predict imagination, one of the factors in the Five-Factor Model of personality, measured in adulthood. They are also interested in how agreeableness, another factor of personality, may be influenced by supportive parenting, which is an important aspect of early family environment that has substantial influence on the development of many behavioral traits. The researchers want to test their hypotheses using data from Add Health and have asked for your help in preparing the data and conducting some statistical analyses.
+
+The sample consists of 3,093 participants. Cognitive ability was assessed when the participants were adolescents, using a short version of the Peabody Picture Vocabulary Test (AH_PVT). Supportive parenting was measured in adolescence and recorded as a dichotomous variable (Sup_Parent), reflecting either high or low supportive parenting. Lastly, a set of questions from the Mini-IPIP scale was used to measure the personality traits of the Five-Factor Model when the participants were adults. You selected the items from that scale which are pertinent to agreeableness (Agr_1 -Agr_4) and imagination (Ima_1 -Ima_4). You have not evaluated the psychometric properties (i.e., reliability) of these items yet.
+
+```{r setup, include=FALSE}
+library(pacman)
+# Automatically install and load multiple R packages for data analysis and visualization using the p_load function. 
+# It will automatically skip installed packages and load them directly if they are already installed.
+pacman::p_load(tidyverse, #用于数据清理、转换和可视化。
+               janitor, #Snake Case Style
+               car, #回归模型诊断和假设检验，常见函数包括 Anova() 和 vif()（方差膨胀因子）
+               psych, # 统计函数，如描述性统计和因子分析。
+               kableExtra, #适合输出到 R Markdown 或 HTML 报告中。
+               effectsize, #统计分析中的效应量
+               effects, #可视化回归模型的预测效果和交互效应
+               ggplot2, #可视化工具
+               GGally, #扩展 ggplot2
+               rockchalk) #用于回归分析和创建回归模型的预测图。
+               
+source("/Users/yanzhu/Desktop/sample_code/functions.R")
+Sys.setenv("LANGUAGE" = "en")
+```
+
+## Read in and inspect the data
+```{r}
+d <- read_csv("/Users/yanzhu/Desktop/sample_code/Design and Analysis of Psychological Experiments/Data/comp_1_data.csv", 
+              show_col_types = FALSE)
+```
+
+```{r}
+# Check the variable names
+colnames(d)
+```
+
+```{r}
+# change to Snake Case Style
+d <- janitor::clean_names(d)
+colnames(d)
+```
+
+
+Predictors: cognitive ability (ah_pvt) and supportive parenting (sup_parent)
+Outcome variables: Agreeableness (agr_1 - agr_4) and Imagination (ima_1 - ima_4)
+
+```{r}
+head(d)
+describe(d)
+```
+
+```{r}
+# There are two nuisance variables in the dataset which I will not use for analysis: AID and SCID. Remove the two variables and run a command that shows the names of the variables that are left. 
+d <- d %>% select(-aid,-scid)
+names(d)
+```
+
+## Assess the reliability of the scales and create composite scores
+```{r}
+# Check the reliability of the agreeableness scale. 
+agreeableness_names <- paste0("agr_",1:4)
+psych::alpha(d[,agreeableness_names],keys= c("agr_3","agr_4")) # "agr_3","agr_4" (Reverse Coded)
+```
+
+Cronbach’s alpha = 0.70, so just above the bar. Therefore I think it is reliable. Don't need to drop any of those varibles.
+*Cronbach’s alpha look at raw_alpha*
+
+```{r}
+imagination_names <- paste0("ima_",1:4)
+psych::alpha(d[,imagination_names],keys= c("ima_2","ima_3","ima_4"))
+```
+
+Cronbach’s alpha = 0.67, so not above the conventional bar of 0.70. However, no researcher would worry about the reliability of a 4-item scale with a Cronbach’s Alpha of .67.
+
+```{r}
+# create a simple correlation table 
+cor(d[,imagination_names], use = "pairwise")
+```
+
+
+```{r}
+# Create a composite score of agreeableness using items Agr_1 – Agr_4 for individuals who answered at least three items on the agreeableness scale.
+d$agr_m <- varScore(d, Forward = c("agr_1","agr_2"), 
+                    Reverse = c("agr_3","agr_4"), 
+                    Range = c(1,5), 
+                    Prorate = TRUE, 
+                    MaxMiss = 0.25)/4
+
+# Create a composite score of imagination using items Ima_1 – Ima_4 for individuals who answered at least three items on the imagination scale.
+d$ima_m <- varScore(d, Forward = "ima_1", 
+                    Reverse = c("ima_2","ima_3","ima_4"), 
+                    Range = c(1,5), 
+                    Prorate = TRUE, 
+                    MaxMiss = 0.25)/4
+
+# Create centered versions of all predictor variables. (to practice)
+d$ah_pvt_c <- d$ah_pvt - mean(d$ah_pvt, na.rm = TRUE)
+d$sup_parent_c <- dplyr::recode(d$sup_parent, '1' = 0.5, '2' = -0.5) 
+
+d %>% 
+  select(agr_m, ima_m, ah_pvt_c, sup_parent_c) %>% 
+  head()
+```
+
+## Show descriptive statistics and “quick-and-dirty” plots of the data
+```{r}
+# Create a “quick-and-dirty” histogram for the cognitive ability variable.
+hist(d$ah_pvt)
+```
+
+```{r}
+# Create a “quick-and-dirty” scatterplot representing the relationship between cognitive ability and the imagination composite score. Include a regression line in your plot. 
+plot(d$ah_pvt, d$ima_m) + abline(lm(ima_m ~ ah_pvt, data = d), col = "red")
+```
+
+```{r}
+# Create a character version of the supportive parenting variable that has meaningful text labels/values for the high and low supportive parenting groups. 
+d$sup_parent_name <- dplyr::recode(d$sup_parent, '1' = "High", '2' = "Low")
+```
+
+```{r}
+# With the character variable that you just created, use a single function to find out the number of individuals in high vs. low supportive parenting group. 
+table(d$sup_parent_name, useNA = c("always"))
+
+# "no"（默认值）：忽略缺失值，不统计 NA。
+# "ifany"：仅在数据中存在 NA 时，显示 NA 的频数。
+# "always"：始终显示 NA 的频数，即使数据中没有 NA。
+```
+
+```{r}
+# use a single function to obtain both the means and standard deviations of the agreeableness composite score broken down by supportive parenting.
+describeBy(d$agr_m, d$sup_parent_name, mat = TRUE)
+```
+
+```{r}
+# Using a single function, create a simple correlation table with ah_pvt, sup_parent_c, the agreeableness composite score, and the imagination composite score. 
+cor(d[,c("ah_pvt","sup_parent","agr_m","ima_m")], use = "pairwise")
+```
+
+## the null model and the mean-only model
+
+```{r}
+# Calculate the SSE for the null model that predicts the imagination composite score using an a priori value of 0. Do so using a step-by-step brute force method in R.
+d$ima_null <- 0
+d$error_null <- d$ima_m - d$ima_null
+sse_null <- sum((d$error_null)^2,na.rm= TRUE)
+sse_null
+```
+
+```{r}
+# Calculate the SSE for the mean-only model that predicts the imagination composite score using the sample mean. Do so using a step-by-step brute force method in R. (1)
+d$ima_basic <- mean(d$ima_m, na.rm = TRUE)
+d$error_basic <- d$ima_m - d$ima_basic
+sse_basic <- sum((d$error_basic)^2,na.rm= TRUE)
+sse_basic
+```
+
+```{r}
+# Compare the two models （One sample t-test）
+mod_null <- lm(ima_m ~ 0, data = d)
+mod_basic <- lm(ima_m ~ 1, data = d)
+anova(mod_null, mod_basic)
+```
+
+For this model comparison, F(1,2334) = 78691 (huge!!), p < .001.
+
+The conclusion: it is worth adding one parameter and using the mean to predict the imagination composite score, in comparison to using an a priori value of 0. The mean of the imagination composite score is significantly different from zero, F(1,2334) = 78691, p < .001.
+
+
+## Statistical analysis: imagination
+```{r}
+# Model_1. Fit a model to test the hypothesis that cognitive ability is associated with imagination, using the mean-centered version of the predictor. 
+mod_1 <- lm(ima_m ~ ah_pvt_c, data = d)
+```
+
+```{r}
+# Report F statistic, degrees of freedom, and p-value for b1, i.e., the regression coefficient associated with the predictor in Model_1. 
+summary(mod_1)
+```
+
+Model_1 estimated 2 parameters: the intercept and a slope for cognitive ability.
+
+The intercept (b0 = 3.61) is the model predicted imagination composite score for individuals with average cognitive ability.
+
+The slope (b1 = 0.011) is the model predicted change in the imagination composite score associated with one point increase in the cognitive ability score.
+
+The association between cognitive ability and imagination is statistically significant, b = 0.011, F(1, 2231) = 156.7, p < .001. It is worth adding one parameter and using the cognitive ability score to predict the imagination composite score. With the sample size we have, it is very unlikely to observe test statistics as extreme or more extreme than the test statistics we have observed in our sample, if the relationship between cognitive ability and imagination is indeed zero in the population.
+
+```{r}
+# Use code to obtain the effect size of the relationship in terms of η2. Also provide its interpretation in a sentence to describe the effect of cognitive ability. 
+Anova(mod_1, type = 3) %>% eta_squared()
+```
+
+Cognitive ability explains 7% of the variance in imagination.
+
+```{r}
+# Use code to obtain the 95% confidence interval around the intercept and the slope. 
+confint(mod_1)
+```
+
+```{r}
+# Model_2. Fit another model where you use the uncentered version of the cognitive ability variable to predict imagination. Did the parameter estimate for intercept (b0) change? Did the parameter estimate for the slope (b1) change? Why or why not? 
+mod_2 <- lm(ima_m ~ ah_pvt, data = d)
+summary(mod_2)
+```
+
+The intercept did change: this is because the intercept is the model prediction when all predictor variables equals 0. In our case, it is the model prediction for individuals with cognitive ability scores of 0. Cognitive ability score ranges from 50 to 150, so individuals with cognitive ability scores of 0 do not exist, and this intercept is not very meaningful.
+
+The slope did NOT change: this is because mean-centering does not affect the slope. Mean-centering moves the values of a variable along the x axis without changing its scale, so that the distances between the values remain the same. In other words, a 1 unit increase in the uncentered variable is the same as 1 unit increase in the mean-centered variable. Therefore, the model predicted change in the dependent variable associated with 1 unit increase in the predictor remains the same.
+
+```{r}
+# Create a publication-quality graph that depicts Model_2. Make sure to include the appropriate error band, a title, axis labels, and points representing the raw data. 
+m_graph_2 <- lm(ima_m ~ ah_pvt, data = d)
+d_graph_2 <- data.frame(ah_pvt = seq(min(d$ah_pvt, na.rm = TRUE),
+                                       max(d$ah_pvt, na.rm = TRUE),
+                                       length.out = max(d$ah_pvt, na.rm = TRUE) - 
+                                                    min(d$ah_pvt, na.rm = TRUE) + 1
+))
+d_graph_2 <- ggplotPredict(m_graph_2, d_graph_2)
+ggplot(data = d, aes(x = ah_pvt, y = ima_m)) +
+  geom_point() + 
+  geom_smooth(stat = "identity", data = d_graph_2, aes(y = Predicted, min = CILo, max = CIHi), color = "red",fill = "pink",alpha = 1.0)+ 
+  theme_bw(base_size = 14) +
+  labs(x = 'Cognitive Ability Score', y = 'Imagination\n\n(1 = Low; 5 = High)\n',title = "Association between Adolescent Cognitive Ability \nand Imagination in Adulthood") +
+  scale_y_continuous(limits = c(min(d$ima_m,na.rm=T)-0.5,
+                                max(d$ima_m,na.rm=T)+0.5), 
+                     breaks = seq(0, 5, by = 1), 
+                     expand = c(0, 0)) +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+## Statistical analysis: agreeableness
+```{r}
+# Model_3. Fit a model to test the hypothesis that supportive parenting is associated with agreeableness, using the recoded -0.5/ 0.5 version of the predictor. 
+mod_3 <- lm(agr_m ~ sup_parent_c, data = d)
+summary(mod_3)
+```
+The intercept (b0 = 3.79) is the model predicted agreeableness composite score for individuals in a hypothetical group in between high and low supportive parenting. It is also the mean of group means: the mean of average agreeableness in the high supportive parenting group and average agreeableness in the low supportive parenting group.
+
+The slope (b1 = 0.079) is the model predicted average difference in the agreeableness composite score between individuals from low supportive parenting group and those from high supportive parenting group. In other words, it is the difference between group means: the difference between average agreeableness in the high supportive parenting group and average agreeableness in the low supportive parenting group.
+
+The association between supportive parenting and agreeableness is statistically significant, b = 0.079, F(1, 2215) = 9.36, p = .002. It is worth adding one parameter and using supportive parenting to predict the imagination composite score. With the sample size we have, it is very unlikely to observe test statistics as extreme or more extreme than the test statistics we have observed in our sample, if the relationship between supportive parenting and agreeableness is indeed zero in the population.
+
+```{r}
+# Use code to obtain the effect size of the relationship in terms of η2. Also provide its interpretation in a sentence to describe the effect of supportive parenting.
+Anova(mod_3, type = 3) %>% eta_squared()
+```
+
+Supportive parenting explains 0.4% of the variance in agreeableness.
+
+
+```{r}
+# Use code to obtain the 95% confidence interval around the intercept and the slope. 
+confint(mod_3)
+```
+
+```{r}
+# Create a publication-quality graph that depicts Model_3. Make sure to include the appropriate error bars, a title, axis labels, and horizontally-jittered raw-data points. 
+m_graph_3 <- lm(agr_m ~ sup_parent, data = d)
+d_graph_3 <- data.frame(sup_parent = c(1, 2))
+d_graph_3 <- ggplotPredict(m_graph_3, d_graph_3)
+
+d_graph_3$sup_parent_name <- dplyr::recode(d_graph_3$sup_parent,
+'1' = "High", '2' = "Low")
+
+# Step 3 - format the graph
+ggplot(d_graph_3, aes(x = sup_parent_name, y = Predicted, fill = sup_parent_name)) +
+  geom_bar(stat = "identity", width = .4) +
+  geom_point(data = d, aes(x = sup_parent_name, y = agr_m),
+             position = position_jitter(width = .15, height = 0),
+             alpha = .05) +
+  geom_errorbar(aes(ymin = CILo, ymax = CIHi), width = .3, linewidth = .8) +
+  labs(x = 'Supportive Parenting', y = 'Agreeableness\n\n(1 = Low; 5 = High)\n',title = "Agreeableness in Adulthood as a Function of \nAdolescent Supportive Parenting") +
+  theme_bw(base_size = 14) +
+  theme(legend.position = "none",plot.title = element_text(hjust = 0.5))+
+  coord_cartesian(ylim = c(1, 5))+
+  scale_x_discrete(limits=c("Low","High"))
+```
+
+```{r}
+# Model_4. Recode the supportive parenting variable such that individuals with high supportive parenting have a value of 1, and those with low supportive parenting have a value of -1. Fit another model where you use this recoded version (-1 vs. 1) of the supportive parenting variable to predict agreeableness. Did the model estimate for intercept (b0) change? Did the slope (b1) change? Why or why not? 
+d$sup_parent_c_2 <- dplyr::recode(d$sup_parent, '1' = 1, '2' = -1)
+mod_4 <- lm(agr_m ~ sup_parent_c_2, data = d)
+summary(mod_4)
+```
+
+The intercept did NOT change: this is because the intercept is the model prediction when all predictor variables equals 0. In our case, the middle point between -1 and 1 is still zero. Therefore, the intercept is STILL the model predicted agreeableness composite score for individuals in a hypothetical group in between high and low supportive parenting. The intercept is STILL the mean of group means.
+
+The slope did change: this is because by recoding the supportive parenting variable to -1 and 1 (instead of -0.5 and 0.5), the distance between the high and low supportive parenting groups changed from 1 to 2. The scale of the supportive parenting variable changed. In other words, a 1 unit increase in the -0.5 and 0.5 version of the variable is no longer the same as 1 unit increase in the -1 and 1 version of the variable. So the model predicted change in the dependent variable associated with 1 unit increase in the predictor does NOT remain the same.
+
+## results 
+The current study adds to our knowledge on the associations among cognitive ability, parenting, and personality across the lifespan. We hypothesized that higher adolescent cognitive ability, measured using a short version of Peabody Picture Vocabulary Test, would predict imagination, one of the personality traits of the Five-Factor Model, in adulthood. We also expected that supportive parenting assessed when the participants were adolescents would be associated with agreeableness in adult age. Using longitudinal data from Add Health, we fit two simple regression models to test these two hypotheses. We found that, first, cognitive ability was significantly associated with imagination, b = 0.011, F(1, 2231) = 156.7, p < .0001. The effect size of this association is medium, eta^2 = 0.07. We also observed a significant relationship between supportive parenting and agreeableness, b = 0.079, F(1, 2215) = 9.36, p = .002, where individuals with highly supportive parents on average scored 0.079 points higher on agreeableness than those with less supportive parents. However, the effect size is small, eta^2 = 0.004. These results suggest that adolescents with higher cognitive ability will have a more vivid imagination later in life. They further suggest that children who grow up with supportive parents tend to be more agreeable as adults. Due to the correlational nature of the data, it is not possible to draw any causal conclusions.
+
+## a post-hoc explorative analysis 
+```{r}
+# Create two new dataframes by subsetting the data according to parental divorce status (e.g., d_married & d_divorced), as indicated by the variable parent_div. For each new dataframe, fit a model in which you use the -0.5/ 0.5 version of the supportive parenting variable to predict the agreeableness composite score. 
+
+d_married <- d[d$parent_div == "Married", ]
+mod_married <- lm(agr_m ~ sup_parent_c, data = d_married)
+d_divorced <- d[d$parent_div == "Divorced", ]
+mod_divorced <- lm(agr_m ~ sup_parent_c, data = d_divorced)
+
+summary(mod_married)
+```
+
+The parameter estimates are approximately the same. The relationship between supportive parenting and agreeableness may not be that different across families with divorced vs. non-divorced parents.
+
+This is not how we would usually proceed. If we want to know whether the strength of the relationship between two variables depends on a third variable, we will run a single model with an interaction term rather than subsetting the data and then examining the relationship in each of the two groups. The type of the analysis you will want to conduct, so to speak, is an interaction analysis, which we will discuss later on in this semester.
+

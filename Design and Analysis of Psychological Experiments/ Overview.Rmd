@@ -1,0 +1,407 @@
+---
+title: "Overview"
+author: "Yan Zhu"
+date: "2025-01-04"
+output: 
+  html_document:
+    toc: yes
+    toc_float: yes
+    theme: cerulean
+    number_sections: no
+---
+
+```{r setup, include=FALSE}
+getwd()
+
+library(psych)
+library(car)
+library(dplyr)
+library(tidyverse)
+library(effectsize)
+library(ggplot2)
+
+source("/Users/yanzhu/Desktop/sample_code/functions.R")
+```
+
+# Part 1: Reading Comprehension Questions (10 pts)
+## 1.
+- Hypothesis 1: A researcher hypothesizes that the severity of ADHD symptoms (*adhd*) will predict performance on a basic cognitive task (*perf*). 
+- Hypothesis 2: The researcher further hypothesizes that the relationship between ADHD severity and performance will be moderated by condition (*condition*), an experimentally manipulated predictor, in which participants are assigned to either view (or to not view) brightly colored, animated icons on the screen of the computer being used for the task.
+- Control Variable: When testing these two hypotheses she decides to control for processing speed (*speed*).
+
+
+### a.	Write out the correct (augmented) model that would allow the researcher to test both of the hypotheses and control for processing speed. When writing your model, use the italicized variable names provided in parentheses. (2)
+perf = b0 + b1 * *adhd_c* + b2 * *condition_c* + b3 * *adhd_c* * *condition_c* + b4 * *speed_c* + b5 * *speed_c* * *condition_c*
+
+### b. Write the compact model for question 1a which tests whether the main effect of ADHD symptom severity is significant. (1)
+perf = b0 + b2 * *condition_c* + b3 * *adhd_c* * *condition_c* + b4 * *speed_c* + b5 * *speed_c* * *condition_c*
+
+### c.	Write the compact model for question 1a which tests whether the interaction between ADHD symptom severity and condition is significant. (1)
+perf = b0 + b1 * *adhd_c* + b2 * *condition_c* + b4 * *speed_c* + b5 * *speed_c* * *condition_c*
+
+## 2.	According to Judd et al., 2014, what complicates the testing of interactions with measured predictors, specifically with regard to obtaining adequate statistical power? (2)
+Unreliability of the measured variables is multiplied in a product term involving those variables, thus decreasing the reliability of the product term substantially. With decreased reliability the power to detect an effect, given some true effect size, decreases drastically. Restrition of range in the measured variables results in a multiplicative reduction of variance in the product of those variables, decreasing the extremeness of the possible values and thus requiring higher power to detect an effect.
+
+## 3.	Explain the additive assumption described by Judd et al., 2017. What does the “reasonableness” of this assumption depend on? (2)
+The additive assumption asserts that regardless of the level of X1 , the relationship (i.e., slope) between Y and X2 does not change. Likewise, regardless of the level of X2, the relationship between Y and X1 is presumed not to change. We can simply “add” up the “effects” of two predictors in deriving Y. The reasonableness of the assumption depends on the substantive domain under examination (i.e., whether the effects of the predictors X1 and X2 on Y truly can be assumed to not affect each other, meaning they do not interact with one another).
+
+# Study 1
+## 1.	Import and examine your data file (“med_school.csv”). Include 1 to 2 sentences noting strong/weak relationships between predictors and any odd or unusual stats or distributions. 
+```{r}
+d <- read.csv("/Users/yanzhu/Desktop/sample_code/Design and Analysis of Psychological Experiments/Data/med_school.csv") %>% janitor::clean_names()
+
+describe(d)
+GGally::ggpairs(d[,2:4])
+```
+All values appear within the expected range for these variables, so I am not removing anything. I note that there is a positive correlation between time and confidence, which might not be linear.
+
+## 2.	Fit an additive linear regression model predicting confidence from time, including workshop as a covariate. Interpret the model fully, including the b’s, F values, p values, and np2. (3)
+```{r}
+m_linear <- lm(confidence ~ time + workshop, data = d)
+summary(m_linear)
+car::Anova(m_linear, type = 3)
+car::Anova(m_linear, type = 3) %>% eta_squared()
+```
+- $b_0$ = 2.58. Participants who did not participate in the workshop and have spent 0 quarters in medical school have a confidence score of 2.58.
+- $b_1$ = 0.10. For every additional academic quarter a student spends in medical school, their confidence increases by 0.10 units, when controlling for the effects of attending the confidence-boosting workshop, $b_1 = .10, F(1, 147) = 15.54, p < .001, np2 = 0.10$. 
+- $b_2$ = 0.12. Students who attended the workshop have a predicted increase in confidence of 0.12 units compared to those who did not attend the workshop, when controlling for the effect of time. However, this effect was not significant, $b_2 = 0.12, F(1, 147) = 0.16, p = .69, n_p^2 = 0.00$.
+
+## 3.	Fit a regression model to test for the quadratic effect of time, statistically controlling for whether students completed the workshop. Interpret the quadratic effect fully, including the b’s, F values, p values, and np2. (3)
+
+```{r}
+d$time_c <- d$time - mean(d$time, na.rm = T)
+```
+
+```{r}
+m_quad <- lm(confidence ~ time_c + I(time_c^2) + workshop, data = d)
+summary(m_quad)
+car::Anova(m_quad, type = 3)
+car::Anova(m_quad, type = 3) %>% eta_squared()
+```
+- 0.016606 * 2 = 0.03
+
+We find a statistically significant quadratic effect of time such that for every additional academic quarter in medical school, the relationship between time in medical school and confidence increases by 0.03 units, when statistically controlling for the linear effect of time and whether students completed the confidence-boosting workshop, $b_2 = .02, F(1, 146) = 10.74, p = .001, n_p^2 = 0.07$
+
+## 4.	What is the linear effect of time on confidence at the mean time spent in medical school, controlling for completion of the workshop and the quadratic effect of time? (2)
+The linear effect of time on confidence is 0.12 for students who have spent an average amount of time in medical school, when controlling for the quadratic effect of time and completion of the workshop, $b_1 = .12, F(1, 146) = 22.21, p < .001, n_p^2 = 0.13$
+
+## 5.	From the quadratic model that includes the covariate, what is the predicted confidence for students prototypically early in medical school (1 SD below the mean on time) who have completed the confidence-boosting workshop?  What is the linear effect of time for these same individuals? (2)
+
+- Predicted confidence = 3.14 + 0.12 * time_c + 0.02 * time_c^2 + workshop * 0.06
+
+```{r}
+describe(d$time_c)
+```
+- 1 SD below the mean  = -5.84 = time_c
+- Workshop = 1
+- Predicted confidence = 3.14 + 0.12 * -5.84 + 0.02 * (-5.84)^2 + 1 * 0.06 = 3.18
+- Take the derivative of our equation to find the linear effect. 
+- Linear effect = 0.12 + 2 * 0.02 * time_c
+- Linear effect = 0.12 + 2 * 0.02 * -5.84 = -0.11
+
+An alternative solution for finding the linear effect is to recenter time_c in r around -5.84 and refit the model. The linear effect will be $b_1$ (note that there might be slight differences using this method due to rounding).
+
+
+## 6.	Make a scatterplot that shows confidence as a function of time. Add a (curved) line that represents the model predictions of the model you estimated in question #3. The model predictions should be plotted for (hypothetical) participants who are half way between having completed and having not completed the confidence-boosting workshop. For full points, your graph must include a regression line (or lines), raw data points, confidence intervals representing the standard error of the point estimate, a title, clear labels on the x and y axis, and have a blank white background. (6)
+
+```{r}
+modelplot <- lm(confidence ~ time + I(time^2) + workshop, data = d)
+
+
+# Set up plot dataframe and model predictions:
+d_graph <- expand.grid(time = seq(min(d$time), max(d$time), length=100),
+                       workshop = mean(d$workshop, na.rm = T))
+
+d_graph <- ggplotPredict(modelplot, d_graph)
+
+scatterplot <- ggplot() + 
+  geom_point(data=d, aes(x = time, y = confidence)) +
+  geom_smooth(aes(ymin = CILo, ymax = CIHi, x = time, y = Predicted),
+              data = d_graph, stat = "identity") +
+  scale_x_continuous("Quarters in Medical School") +   # x-axis label
+  scale_y_continuous("Confidence") +     # y-axis label
+  
+  theme_bw(base_size = 14) + 
+  labs(x = 'Academic Quarters in Medical School', # indicate a label for the x-axis
+       y = 'Confidence',
+       title = 'Fig 1') +
+  coord_cartesian(ylim = c(0,10), xlim = c(0,20)) + # specify the range of axes
+  theme(legend.position = c(.1,.9),                     # positioning legend (play around with values; (0,0) is bottom left, and (1,1) is top right) 
+        legend.background = element_blank(),               # removing background of legend
+        legend.title = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())
+scatterplot
+```
+
+## 7.	Write a short results section in your Rmarkdown file. Very briefly set up the study and report all statistics that are relevant to the researchers’ hypothesis (report the b’s, F values, p values, and np2). Provide a one-sentence summary or conclusion at the end. (5)
+We examined how medical students' confidence changed over the course of medical school and whether there was a relationship between attending a confidence-boosting workshop and confidence. We hypothesized that students would enter medical school with high confidence, but that confidence would then drop as medical school progressed before eventually rising as students reached the end of medical school. We further hypothesized that attending a confidence-boosting workshop would increase students' confidence. We found a significant positive quadratic relationship between time spent in medical school and students' confidence, $b = .02, F(1, 146) = 10.74, p = .001, n_p^2 = 0.07$, when controlling for the linear effect of confidence and whether students attended the workshop. Furthermore, the linear effect of confidence was significant for students who had been in medical school for an average amount of time, $b = .12, F(1, 146) = 22.21, p < .001, n_p^2 = 0.13$, when controlling for the quadratic effect of time in middle school and whether students attended the workshop. Finally, we observed no effect of attending the confidence-boosting workshop, $b = .06, F(1, 146) = 0.04, p < .85, n_p^2 = 0.00$, when controlling for the linear and quadratic effects of time.
+
+# Study 2
+## 1.	Import and examine your data file (“forecasting.csv”). Include 1 to 2 sentences noting strong/weak relationships between predictors and any odd or unusual stats or distributions. If you notice any observations that must be removed (e.g., observations with impossibly large values), remove them and explain why you did so in one sentence. (3) 
+```{r}
+d2_raw <- read.csv("/Users/yanzhu/Desktop/sample_code/Design and Analysis of Psychological Experiments/Data/forecasting.csv") %>% janitor::clean_names()
+
+describe(d2_raw)
+```
+I noticed that my minimum dep_e score is impossibly low (-10) and my max forecast_1 score is impossibly high (25) values. I will remove these observations. 
+
+```{r}
+d2 <- d2_raw %>%
+  filter(id != 105)
+
+d2 <- d2 %>% 
+  filter(id != 85)
+```
+
+```{r}
+cor(d2[,c('forecast_1', 'forecast_2', 'forecast_3', 'forecast_4', 'dep_a', 
+          'dep_b', 'dep_c', 'dep_d', 'dep_e', 'dep_f')])
+```
+Of the correlations I can observe, nothing seems out of the ordinary. Depression scores correlate with each other. However, I have some NAs, which I will have to work around when creating composite scores.
+
+## 2.	Create composite (average) scores for depression and affective forecasting. For each of these composite scores, check the reliability of the scale. (3)
+```{r}
+d2$dep_m <- varScore(d2, c('dep_a','dep_b','dep_c','dep_d','dep_e', 'dep_f'), 
+                     Prorate = T, MaxMiss = 0.25)/6
+d2$forecast_m <- varScore(d2, c('forecast_1', 'forecast_2', 'forecast_3', 
+                                'forecast_4'), Prorate = T, MaxMiss = 0.25)/4
+
+psych::alpha(d2[, c('dep_a','dep_b','dep_c','dep_d','dep_e', 'dep_f')])
+psych::alpha(d2[, c('forecast_1', 'forecast_2', 'forecast_3', 'forecast_4')])
+
+```
+- Cronbach's Alpha for the depression scale is 0.77
+- Cronbach's Alpha for the affective forecasting scale is 0.75
+
+## 3.	Fit a model predicting depression from active forecasting. Provide a 1- to 2-sentence summary of your results, include the b estimate of the focal predictor, F values, p values, and np2. (2)
+```{r}
+m1 <- lm(dep_m ~ forecast_m, data = d2)
+summary(m1)
+car::Anova(m1, type = 3)
+car::Anova(m1, type = 3) %>% eta_squared()
+
+```
+We observe that an individual's affective forecasting ability negatively predicts depression, such that for every 1 unit increase in affective forecasting a person's depression score decreases by 0.34 units, $b_1 = -0.34, F(1, 246) = 73.75, p < .001, n_p^2 = 0.23$.
+
+## 4.	Create a scatterplot in which you plot a participant’s average depression score on the y axis and their average affective forecasting score on the x axis. Does this relationship appear linear? (2)
+```{r}
+plot(d2$forecast_m, d2$dep_m)
+
+```
+The relationship between the composite affective forecasting scores and the composite depression scores appears to have a slight curve. Based on this visual inspection, it is probable that the linearity assumption has been violated.
+
+## 5.	Determine if your data include any observations that should be removed because they are regression outliers or have high influence on the model. (2)
+```{r}
+x_hats <- modelCaseAnalysis(m1, Type = "HATVALUES")
+```
+I observe no gap between the bins of our hat value histogram. Additionally, the two points that are slightly beyond the recommended cutoff (green line) are not far from it. I would not identify these points as having high leverage such that I would consider removing them from the dataset.
+
+```{r}
+x_resids <- modelCaseAnalysis(m1, Type = "RESIDUALS")
+```
+There are no regression outliers in these data.
+
+```{r}
+x_cooks <- modelCaseAnalysis(m1, Type = "COOKSD")
+```
+There are several points beyond the cutoff indicating high influence. However, given that there is no gap in our histogram bins and the large number of scores beyond that cutoff, I identify no points that I would consider removing due to high influence.
+
+```{r}
+x_infs <- modelCaseAnalysis(m1, Type = "INFLUENCEPLOT")
+```
+The Q-Q plot shows that there are many points with high influence. We definitely want to take a closer look at our model, but we would not want to remove any observations.
+
+## 6.	Determine if the model assumptions of normality, constant variance, and linearity have been violated. Write 2 to 3 sentences describing what you find. (2)
+
+NOTE: Rmarkdown does not include the images for the modelAssumptions package upon knitting. To see the answer key images, please download the R Markdown file.
+
+```{r}
+modelAssumptions(m1, Type = "NORMAL")
+```
+There appears to be a slight violation of the normality assumption, as observed in our t Quantiles plot.
+
+```{r}
+modelAssumptions(m1, Type = "CONSTANT")
+```
+The constant variance assumption appears to have been violated, as indicated by the funnel shape in our residuals and the curvature of the pink line.
+
+```{r}
+modelAssumptions(m1, Type = "LINEAR")
+
+```
+The linearity assumption has been violated; there is a clear curve to the pink line in our component residual / partial residual plot.
+
+
+## 7.	Regardless of your answers to questions 5 and 6, use the same model from question 3 and determine a recommended transformation that you could apply to these data to ensure that your model better fits the model assumptions. (2)
+```{r}
+modelBoxCox(m1)
+```
+The modelBoxCox code recommends a power transformation of lambda = 0.02, however I do not know how to interpret that transformation. Given the shape of the curve from our component residual / partial residual plot, I am would use a log transformation to move x or y down the ladder. 
+
+## 8.	Based on your answer to question 7 apply a transformation to your data. Be sure to pick a transformation that you can interpret. (2)
+```{r}
+d2$forecast_m_trans <- log2(d2$forecast_m)
+```
+
+
+## 9.	Re-fit a model predicting depression scores from the affective forecasting scores, using the transformed data. Determine if your transformed data corrected the violations of our model assumptions. (2)
+
+```{r}
+m2 <- lm(dep_m ~ forecast_m_trans, data = d2)
+summary(m2)
+car::Anova(m2, type = 3)
+car::Anova(m2, type = 3) %>% eta_squared()
+```
+
+```{r}
+modelAssumptions(m2, Type = "NORMAL")
+```
+The log2 transformation slightly improved the normality of the residuals in the model.
+
+```{r}
+modelAssumptions(m2, Type = "CONSTANT")
+```
+The log2 transformation corrected the violation of the constant variance assumption.
+
+
+```{r}
+modelAssumptions(m2, Type = "LINEAR")
+
+```
+The log2 transformation has partially corrected for the violation of the linearity assumption, though we can still observe that the relationship is not perfectly linear.
+
+## 10.	Provide a 1- to 2-sentence summary of the model you fit in question 9. Including the b estimate of the focal predictor, F values, p values, and np2. Make sure that your summary includes a conceptual interpretation of your b1 estimate, which could be understood by someone who is not an expert in statistics. (3)
+We regressed participant's depression scores on a composite score of their affective forecasting ability, which had been transformed using a log2 transformation to correct for violations of the normality, constant variance, and linearity assumptions. We found that for every 1.06 units that an individual's affective forecasting ability increases, their predicted depression is cut in half, $b_1 = -1.06, F(1, 246) = 100.88, p < .001, n_p^2 = 0.29$.
+
+ * Alternative interpretation of $b_1$: every time time forecasting ability doubles, depression scores decrease by 1.06 units.
+
+
+# Study 3
+## 1.	Import and examine your data file (“reaction.csv”). Include 1-2 sentences noting strong/weak relationships between predictors and any odd or unusual stats or distributions. If you notice any observations that must be removed (e.g., observations with impossibly large values), remove them and explain why you did so in one sentence. (3) 
+```{r}
+d3 <- read.csv("/Users/yanzhu/Desktop/sample_code/Design and Analysis of Psychological Experiments/Data/utility_value.csv") %>% janitor::clean_names()
+
+describe(d3)
+GGally::ggpairs(d3)
+
+table(d3$stem)
+table(d3$intervention)
+```
+
+All values from these data are within the anticipated range. I observe a positive correlation between stem course and GPA as well as between experience and GPA. I also note that we have unequal cell sizes for both the stem and intervention predictors.
+
+## 2.	Fit a model to test if being in a STEM (versus) non-STEM course interacts with whether students took part in the utility value intervention to predict students’ GPA at graduation. Be sure to center any variables that should be centered for easier interpretation of your results. (3)
+```{r}
+d3$stem_c <- dplyr::recode(d3$stem,
+                           "0" = -0.5,
+                           "1" = 0.5)
+
+d3$intervention_c <- dplyr::recode(d3$intervention,
+                           "0" = -0.5,
+                           "1" = 0.5)
+
+mod1 <- lm(gpa ~ stem_c * intervention_c, data = d3)
+summary(mod1)
+car::Anova(mod1, type = 3)
+car::Anova(mod1, type = 3) %>% eta_squared()
+
+```
+
+## 3.	Provide a full interpretation of each of the parameter estimates from the model you fit in question 2. A full interpretation of a parameter includes a practical explanation for the b value and states which other effects (if any) were controlled for when calculating that b value. (4)
+- $b_0$ = 2.53, this is the predicted GPA for a student who is hypothetically half way between having taken and not having taken the utility value intervention and who is hypothetically half way between being in a stem and non-stem course.
+- $b_1$ = 0.16, being in a STEM course (versus a non-STEM course) leads to a 0.16 unit increase in student GPA for a student who is hypothetically half way between having taken and not having taken the utility value intervention, when statistically controlling for the effects of the utility value intervention and the interaction between being in a STEM course and taking the utility value intervention.
+- $b_2$ = 0.10, taking part in the utility value intervention leads to a 0.10 unit increase in GPA for a student who is hypothetically half way between being in a STEM and non-STEM course, when statistically controlling for the effects of being in a STEM course and the interaction between being in a STEM course and taking the utility value intervention.
+- $b_3$ = 0.25, the effect of the utility value intervention is 0.25 units higher in STEM classes than in non-STEM classes, when statistically controlling for the effects of taking the utility value intervention and being in a STEM course.
+
+## 4.	What is the simple effect of the utility value intervention for participants in a non-STEM course. (2)
+Recode method:
+```{r}
+mod1_b <- lm(gpa ~ stem * intervention, data = d3)
+summary(mod1_b)
+```
+The simple effect of intervention is -0.02
+
+By hand:
+
+- 2.53 + 0.16 * stem_c + 0.10 * intervention_c + 0.25 * stem_c * intervention_c
+- 2.53 + 0.16 * (-0.5) + 0.10 * intervention_c + 0.25 * (-0.5) * intervention_c
+- 2.45 + 0.10 * intervention - .125 * intervention
+- 2.45 - 0.025 * intervention (note slight difference due to rounding)
+
+## 5.	What is the predicted GPA for each of the following groups:
+### a.	Students who took part in the utility value intervention and are in a non-STEM course? (.5)
+- 2.53 + 0.16 * -0.5 + 0.10 * 0.5 + 0.25 * -0.5 * 0.5 = 2.44
+
+### b.	Students who took part in the utility value intervention and are in a STEM course? (.5)
+- 2.53 + 0.16 * 0.5 + 0.10 * 0.5 + 0.25 * 0.5 * 0.5 = 2.72
+
+### c.	Students who did not take part in the utility value intervention and are in a non-STEM course? (.5)
+- 2.53 + 0.16 * -0.5 + 0.10 * -0.5 + 0.25 * -0.5 * -0.5 = 2.46
+
+### d.	Students who did not take part in the utility value intervention and are in a STEM course? (.5)
+- 2.53 + 0.16 * 0.5 + 0.10 * -0.5 + 0.25 * 0.5 * -0.5 = 2.50
+
+## 6.	Fit a model to test if being in a STEM (versus) non-STEM course interacts with experience to predict students’ GPA at graduation. Be sure to center any variables that should be centered for easier interpretation of your results. (3)
+```{r}
+d3$exp_c <- d3$exp - mean(d3$exp, na.rm = T)
+
+mod2 <- lm(gpa ~ stem_c * exp_c, data = d3)
+summary(mod2)
+car::Anova(mod2, type = 3)
+car::Anova(mod2, type = 3) %>% eta_squared()
+```
+
+## 7.	Refit the model from question 6 using uncentered predictors. Make a publication quality graph depicting the interaction from this recentered model. Experience should be graphed on the x-axis. Include a dashed line, representing participants who are hypothetically half way between being in a STEM versus non-STEM course. For full points, your graph must include a regression line (or lines), raw data points, confidence intervals representing the standard error of the point estimate, a title, clear labels on the x and y axis, and have a blank white background. (6)
+
+```{r}
+m_graph <- lm(gpa ~ stem * exp, data = d3)
+summary(m_graph)
+```
+
+```{r}
+d_graph <- expand.grid(exp = seq(min(d3$exp), max(d3$exp), length = 10), 
+                       stem = c(0, 1))
+
+d_graph <- ggplotPredict(m_graph, d_graph)
+
+d_graph$stem_str <- dplyr::recode(d_graph$stem,
+                                       "0" = "Non STEM", 
+                                       "1" = "STEM")
+
+d3$stem_str <- dplyr::recode(d3$stem,
+                             "0" = "Non STEM", 
+                             "1" = "STEM")
+
+ggplot(d3, aes(x = exp, y = gpa, color = stem_str, fill = stem_str)) +
+  geom_smooth(data = d_graph, stat = "identity", 
+              aes(y = Predicted, ymin = CILo, ymax = CIHi))+ 
+  geom_point(aes(), alpha = .2, size=1) +
+  labs(x = "Experience with Course Content", y = "GPA", title = "Fig 2",
+       color = "Course Type", fill = "Course Type") + 
+  theme_minimal() +
+  theme(
+    panel.grid.major = element_blank(), # remove gridlines
+    panel.grid.minor = element_blank(), # remove gridlines
+    legend.background = element_blank() # removing background of legend
+  ) +
+  geom_abline(intercept = 2.39172, # found from 2.458033 + -0.132626 * 0.5
+              slope = 0.05324, # b2 from m_graph
+              linetype = "dashed")
+```
+
+## 8.	Identify where on the graph you observe each of the parameter estimates from the model you fit in question 6. (4)
+- $b_0$ is the y-intercept of the red line, or when experience with course content = 0 for non-STEM courses
+- $b_1$ is the difference between the red and blue lines for participants who have an experience score of 0
+- $b_2$ is the slope of a the red line (when STEM = 0)
+- $b_3$ is the magnitude by which the difference between the blue and red line increases as experience increases.
+
+## 9.	Provide a 2- to 3-sentence summary of the results from the model you fit in question 6. For full points, explain what variables you controlled for and why; include the b’s, F values, p values, and np2; and include a conceptual interpretation of your b3 estimate, which could be understood by someone who is not an expert. (3)
+We examined whether the effect of experience on GPA [or: the relationship between experience and GPA] depends on the type
+of course that students are in (STEM vs. non-STEM) to predict students' GPA.We regressed students' GPA on a measure of their experience, the course type (STEM versus non-STEM), and the interaction of the two. We found that for every 1 unit increase in experience with course content, the difference in GPA between students in STEM courses and students in non-STEM courses increased by 0.11 points, $b3 = 0.11, F(1, 496) = 9.54, n_p^2 = 0.02$.
+
+
+## How long did this assingment take?
+Congratulations on completing 610!
+

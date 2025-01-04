@@ -1,0 +1,272 @@
+---
+title: "Two Quant. & Dich. Predictors and Their Interaction"
+author: "Yan Zhu"
+date: "2025-01-04"
+output: 
+  html_document:
+    toc: yes
+    toc_float: yes
+    theme: cerulean
+    number_sections: no
+---
+# Reading questions
+	
+## 1.	Judd, McClelland, & Ryan talk of a “paradox” in using standardized residuals to detect outliers. Describe this paradox, present what the authors recommend using to solve it, and list the three reasons they recommend this solution. 
+
+The paradox is that extreme data values tend influence the model in a way that causes the model to change in order to minimize error for those extreme values when estimating the parameters. So we are asking whether an extreme value is unusual with respect to the model, but that model was made by trying to fit that extreme value. The authors recommend using studentized deleted residuals (AKA just studentized residuals) to solve this. The three reasons are: studentized residuals solves the scaling problem and eliminates the paradox, the studentized residual has a natural interpretation in the model comparison framework, and it is very unlikely the studentized residuals would miss an unusual value that other transformed residuals would catch.
+
+## 2.	Of the assumptions of linear regression that refer to residuals, which two are the most problematic to violate in large samples? Why are these particularly concerning? What are solutions to violating these assumptions?
+
+Independence of errors because violation of this assumption gives inaccurate SEs, and GLM is not robust at handling non-independence. We could use a repeated-measures design or multi-level modeling as a solution. Exact X as violations of this assumption increase standard error and lead to inaccurate regression coefficients.
+
+If you answer based on the assumptions that we can assess by examining the residuals, then the book says normally distributed residuals and constant variance because of increased risk of both Type I and Type II error when these assumptions are violated. The book recommends transformations as a solution.
+
+## 3.	For each of these quantile-quantile plots (A-C), describe what the distribution of scores look like on the raw data. Then, in 3 sentences or less, explain the logic of a Q-Q plot.
+A: Thin-tailed distribution. Extreme scores show a flatter slope; this indicates that scores on the ends of the distribution are not as extreme as they should be. B: Thick-tailed distribution. Extreme scores show a steeper slope; this indicates that scores on the ends of the distribution are more extreme than they should be. C: Normal. The line is straight; scores are where they should be for a normal distribution.
+
+A Q-Q plot shows the percentile distribution of the residuals against the percentile distribution that would be expected if the distribution were normally distributed. The vertical axis shows the rank-ordered percentile scores for each observation; the horizontal axis shows the z-scores for each percentile from the normal distribution. If the data are normally distributed, points in the Q-Q plot lie along a straight line.
+
+```{r setup, include=FALSE}
+Sys.setLanguage("en")
+library(tidyverse)
+library(psych)
+library(car)
+library(effectsize) 
+library(rockchalk) 
+library(data.table)
+library(gvlma) # 主要功能是对线性回归模型的基本假设进行系统性验证
+
+getwd()
+source("/Users/yanzhu/Desktop/sample_code/functions.R")
+```
+
+# Data Analysis
+The data for this homework were adapted from a dataframe in the car package. For this HW, read in and use the data from the “HW11Data” file provided on Canvas. 
+
+Each row in the data represents a country in the United Nations (Country). Infant mortality (infantMortality) is the rate of death in infancy among live births. Per capita GDP (ppgdp) is a measure of a country’s wealth that takes gross domestic product (GDP) and divides it by the number of people in the country. Both GDP and per capita GDP should be positive numbers. 
+
+## 1.	Explore the data!
+### a.	Read in the raw data and change the variable names to Snake Case.
+```{r}
+d_raw <- fread("/Users/yanzhu/Desktop/sample_code/Design and Analysis of Psychological Experiments/Data/HW11Data") %>% janitor::clean_names("snake")
+```
+
+### b.	Remove unrelated variables, keep only infant_mortality, ppgdp, and country.
+```{r}
+d <- d_raw %>% select(infant_mortality, ppgdp, country)
+```
+
+### c.	Obtain descriptive statistics for infant_mortality and ppgdp.
+```{r}
+describe(d)
+skimr::skim(d)
+```
+
+### d.	Create quick-and-dirty histograms of infant_mortality and ppgdp.
+```{r}
+hist(d$infant_mortality)
+```
+
+```{r}
+hist(d$ppgdp)
+```
+
+### e.	There are two obvious outliers with invalid values on variable infant_mortality and ppgdp. Find them and assign NA to replace the invalid values.
+
+Infant mortality is defined as infant deaths per 1000 live births, with an upper limit of 1000. One observation has an infant mortality rate of 9999.
+
+Per capita GDP is defined as gross domestic product (GDP) divided by the number of people in the country. It cannot be negative. One observation has per capita GDP of -9999.
+```{r}
+d[d$ppgdp == -9999,"ppgdp"] <- NA
+d[d$infant_mortality == 9999,"infant_mortality"] <- NA
+```
+
+### f.	Create quick-and-dirty histograms of infant_mortality and ppgdp once more. Are these variables normally distributed? If the variables are not normally distributed, would it always be a problem by itself? Why or why not?
+The two variables are obviously not normally distributed, as shown in the histograms above. Non-normal distributions of variables are NOT problematic themselves. It is only a potential concern if the residuals in a general linear model are not normally distributed.
+```{r}
+hist(d$infant_mortality)
+hist(d$ppgdp)
+```
+
+## 2.	Conduct the analysis WITHOUT data transformation or case analysis.
+### a.	Fit a model to predict infant mortality from per capita GDP. 
+```{r}
+m1 <- lm(infant_mortality ~ ppgdp, data=d)
+summary(m1)
+confint(m1)
+eta_squared(m1)
+```
+
+### b.	Report the results in one sentence, including relevant statistics. 
+There is a significant association between per capita GDP and infant mortality, b = -0.00086, F(1,189) = 67.77, p < .001.
+
+## 3.	Check for violations of model assumptions
+### a.	Make a quick-and-dirty scatterplot of the relationship between infant mortality and per capita GDP.
+Obviously non-linear.
+```{r}
+plot(d$ppgdp, d$infant_mortality)
+```
+
+### b.	Check for violations of model assumptions on the model you fit above. Write down whether you think each of the model assumptions was violated. Explain how you used the graphs from modelAssumptions to arrive at this conclusion. (Note: if the plots don’t show up, run the code in the console at the bottom of R.)
+```{r}
+modelAssumptions(m1, Type = "NORMAL")
+# Residuals look non-normal. We can see that the studentized residuals have a positive skew. We can see this in the graph in the right, that the distribution is very different from the normal distribution (in blue).
+
+modelAssumptions(m1, Type = "CONSTANT")
+# The variance of residuals does not look constant. When looking at the graph in the left, we should see the points evenly spread around the blue line, which is not the case here. The residuals seem to be more spread out at higher levels of infant mortality.
+
+modelAssumptions(m1, Type = "LINEAR")
+#The relationship looks non-linear. The pink line that shows the relation in the data is very different than a linear relationship (in blue).
+```
+
+## 4.	It turns out that the model assumptions were rather severely violated. So, let’s transform the variable(s). What is the suggested Box-Cox transformation? According to what you learned in lecture and lab, what might be a better transformation?
+Suggested Box-Cox transformation is the one where lambda = -0.14. Since this suggested lambda is very close to 0, we might as well use a log transformation so that our interpretation of the slope will be easier.
+```{r}
+modelBoxCox(m1)
+```
+
+## 5.	Log-transformation of the outcome variable
+### a.	Apply log-transformation to infant mortality and refit the model. Summarize the results of the model in a sentence, including a practical interpretation of the coefficient. 
+There is a significant association between per capita GDP and infant mortality, b = -0.000066, F(1,189) = 219.6, p < .001. With 1 unit increase in per capita GDP, the infant mortality rate is predicted to change by a factor of 0.99995 (decrease by 0.00005%). A 15126.3-unit decrease in per capita GDP is associated with a doubling in infant mortality rate.
+```{r}
+d$infant_mortality_log2 <- log2(d$infant_mortality)
+m2 <- lm(infant_mortality_log2 ~ ppgdp, data = d)
+summary(m2)
+2^-6.611e-05
+1/-6.611e-05
+```
+
+### b.	Check for violations of model assumptions again on the refitted model above. Did log-transforming infant mortality solve the problems? 
+The log transformation makes the residuals look more normally distributed. We also made progress for the other assumptions, but we still do not have constant variance and the relation does not look linear at all.
+```{r}
+modelAssumptions(m2, Type = "NORMAL")
+modelAssumptions(m2, Type = "CONSTANT")
+modelAssumptions(m2, Type = "LINEAR")
+```
+
+## 6.	Log-transformation of the predictor
+### a.	Apply log-transformation to per capita GDP and refit the model to predict untransformed infant mortality. Summarize the results of this model, including a practical interpretation of the coefficient. 
+There is a significant association between per capita GDP and infant mortality, b = -10.31, F(1,189) = 303.1, p < .001. With a 100% increase in (a doubling of) per capita GDP, the infant mortality rate is predicted to decrease by 10.31 units.
+```{r}
+d$gdp_log2 <- log2(d$ppgdp)
+m3 <- lm(infant_mortality ~ gdp_log2, data=d)
+summary(m3)
+```
+
+### b.	Check for violations of model assumptions again on the refitted model above. Did log-transforming per capita GDP solve the problems?
+Like before, transforming just GDP helped with the normality of the residuals. But it still looks like the variance of residuals is not constant and the relation is not linear.
+```{r}
+modelAssumptions(m3, Type = "NORMAL")
+modelAssumptions(m3, Type = "CONSTANT")
+modelAssumptions(m3, Type = "LINEAR")
+```
+
+## 7.	Log-transformation of the outcome variable and the predictor
+### a.	Fit a model where you use log-transformed per capita GDP to predict log-transformed infant mortality. Summarize the results of this model, including a practical interpretation of the coefficient.
+There is a significant association between per capita GDP and infant mortality, b = -0.617, F(1,189) = 615.3, p < .001. With a 100% increase in (a doubling of) per capita GDP, the infant mortality rate is predicted to to change by a factor of 0.652 (decrease by 34.8%).
+```{r}
+m4 <- lm(infant_mortality_log2 ~ gdp_log2, data=d)
+summary(m4)
+2^-0.617
+```
+
+### b.	Check for violations of model assumptions again on the model you fit above. Did log-transforming both infant mortality and per capita GDP solve the problems? (Use the model you fit in question 7a to answer the questions below.)
+Log-transforming both infant mortality and per capita GDP solved most of the issues. The residuals are now approximately normally distributed; the variance are mostly constant across levels of fitted values; and the relationship is largely linear.
+```{r}
+modelAssumptions(m4, Type = "NORMAL")
+modelAssumptions(m4, Type = "CONSTANT")
+modelAssumptions(m4, Type = "LINEAR")
+```
+
+## 8.	Conduct a full case analysis with the model you just picked. Specifically, write down which countries you would consider to have high leverages, to be model/regression outliers, to have excessive influence on the model as a whole, and to have excessive influence on the parameter estimate for log-transformed per capita GDP specifically. 
+```{r}
+# It looks like Somalia has high leverage
+modelCaseAnalysis(m4,'HATVALUES')
+d[175,]
+
+# It looks like Equatorial Guinea could be a regression outlier.
+modelCaseAnalysis(m4,'RESIDUALS')
+d[60,]
+
+# It looks like Equatorial Guinea has the most excessive influence on the model overall.
+modelCaseAnalysis(m4,'COOKSD')
+d[60,]
+
+modelCaseAnalysis(m4,'INFLUENCEPLOT')
+d[60,]
+
+## It looks like Equatorial Guinea has the most excessive influence on the slope for log-transformed per capita GDP. You can see a gap of between the dfbeta of Equatorial Guinea and the distriution of dfbetas where all other countries sit.
+modelCaseAnalysis(m4,'DFBETAS',Term = "gdp_log2")
+d[60,]
+```
+
+```{r}
+modelCaseAnalysis(m4,'DFBETAS',Term = "gdp_log2")
+d[60,]
+```
+
+
+## 9.	Remove outlier(s)
+### a.	Remove any observations of countries which you think are outliers. 
+```{r}
+d2 = filter(d, country != "Equatorial Guinea")
+```
+
+### b.	Justify why you removed the observation(s). How would it/they impact your conclusion regarding the relationship between infant mortality rate and per capita GDP, should it/they be kept in your model?
+I chose to remove Equatorial Guinea because it is the observation that had the most extreme influence on the slope. An observation like Equatorial Guinea has extreme impact on the slope, and therefore biases our estimate for the relationship between infant mortality and per capita GDP (pulling the regression line towards itself). We want our model to be representative of the data overall, not of a single influential point like Equatorial Guinea.
+
+Somalia should not be removed: high leverage itself is not a problem and can sometimes even help the statistical power of the analysis.
+
+
+## 10.	Refit the model in 7a but with the outlier(s) removed. What changed in your results? (Use the model you fit in question 10 to answer the questions below.)
+The relationship between infant mortality and per capita GDP became larger in magnitude. The standard error of the slope became smaller. The effect size (variance explained) also became slightly larger.
+```{r}
+m5 <- lm(infant_mortality_log2 ~ gdp_log2, data=d2)
+summary(m5)
+summary(m4) # before removeing the outlier
+```
+
+
+## 11.	Make two publication-quality graphs that show the effect of GDP on infant mortality. In one graph, plot both the transformed variables [a linear relationship between log2(infant mortality) and log2(ppgdp)]. In the other graph, plot both the untransformed variables [a curvilinear relationship between infant mortality and ppgdp]. 
+```{r}
+d_graph <- data.frame(gdp_log2 = seq(min(d2$gdp_log2, na.rm = T), max(d2$gdp_log2, na.rm = T), length = 100))
+
+d_graph <- ggplotPredict(m5, d_graph)
+
+ggplot(data = d2, aes(x = gdp_log2, y = infant_mortality_log2)) + 
+  geom_point(color = "black") + 
+  geom_smooth(data = d_graph, aes(x = gdp_log2, y = Predicted,
+                             ymin = CILo, ymax = CIHi), 
+              stat = "identity", color = "purple") +
+  theme_bw(base_size = 14) + 
+  scale_x_continuous("GDP (log2)", breaks = seq(6, 16, by=1)) + 
+  scale_y_continuous("Infant Mortality (log2)") + 
+  labs(title = 'Effect of GDP on Infant Mortality')
+```
+```{r}
+d_graph$ppgdp <- 2^d_graph$gdp_log2
+d_graph$Predicted_ut <- 2^d_graph$Predicted
+d_graph$CILo_ut <- 2^d_graph$CILo
+d_graph$CIHi_ut <- 2^d_graph$CIHi
+
+ggplot(data = d2, aes(x = ppgdp, y = infant_mortality)) + 
+  geom_point(color = "black") + 
+  geom_smooth(data = d_graph, aes(x = ppgdp, y = Predicted_ut,
+                             ymin = CILo_ut, ymax = CIHi_ut), 
+              stat = "identity", color = "purple") +
+  theme_bw(base_size = 14) + 
+  scale_x_continuous("GDP (log2)") + 
+  scale_y_continuous("Infant Mortality (log2)") + 
+  labs(title = 'Effect of GDP on Infant Mortality')
+```
+
+## 12.	Write a short paragraph reporting these results. Explain the transformation you made, and why you made it. Explain your case analysis, and why you chose to exclude the data that you did. Finally, interpret your model using all stats in APA format (i.e., report the effect of GDP on infant mortality, the F value, degrees of freedom, a variance-based effect size, and the p value).
+We wanted to examine the relationship between per capita GDP and infant mortality rates. However, we found that residuals in a simple linear model violated the assumptions of a general linear model framework. The residuals of the model fit had very non-normal and inconsistently distributed residuals, and clearly indicated a nonlinear relation. However, the relation was simple and monotonic, so we decided to log transform both infant mortality and per capita GDP and refit the model. We also noticed that Equatorial Guinea had excessive influence on the slope for per capita GDP, thereby biasing our model. Below we reported the model with Equatorial Guinea removed, but a sensitivity analysis suggested that our conclusion will not change even if Equatorial Guinea were to be included.
+
+We found that a nation’s per capita GDP (log transformed) was a strong predictor of that nation’s infant mortality rate accounting for 79% of the variance in infant mortality (log transformed), b = -0.624, F(1,188) = 703.1, p < .001. Every time a nations’ per capita GDP doubles, the model predicted infant mortality would change by a factor of 0.649, or in other words, decrease by approximately 35% of itself.
+
+```{r}
+summary(m5)
+```
+
+
